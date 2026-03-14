@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "C5D93FE3-801B-4A0F-BA77-B9FD3553426A",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:LockIn.xcodeproj",
+      "identifier" : "AAE22A782F5E086300C261A9",
+      "name" : "LockIn"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:LockIn.xcodeproj",
+        "identifier" : "AA01FA852F5F0823003F0C3D",
+        "name" : "LockInTests"
+      }
+    }
+  ],
+  "version" : 1
+}

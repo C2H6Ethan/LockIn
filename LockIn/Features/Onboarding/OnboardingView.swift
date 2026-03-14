@@ -1,0 +1,492 @@
+import SwiftUI
+import FamilyControls
+import UserNotifications
+
+struct OnboardingView: View {
+
+    let onComplete: () -> Void
+
+    @State private var step = 0
+    @State private var selection = FamilyActivitySelection()
+    @State private var showingPicker = false
+
+    // First task state — mirrors AddTaskSheet
+    @State private var habitTitle = ""
+    @State private var habitRepeats = true
+    @State private var habitDays: Set<Int> = []
+    @State private var habitStartDate: String = Date().dateString
+    @State private var habitShowingDatePicker = false
+    @State private var habitPickerDate = Date()
+    @State private var habitBlocksApps = true
+    @State private var habitBlockingStartTime: DateComponents? = nil
+    @State private var habitShowingStartTimePicker = false
+    @State private var habitStartTimePicker = Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var habitHasStepGoal = false
+    @State private var habitStepTarget: Int = 5_000
+    @FocusState private var habitFieldFocused: Bool
+
+    private let stepOptions: [(value: Int, label: String)] = [
+        (1_000, "1k"), (2_500, "2.5k"), (5_000, "5k"), (7_500, "7.5k"), (10_000, "10k"),
+    ]
+
+    private let dayOptions: [(label: String, weekday: Int)] = [
+        ("Mon", 2), ("Tue", 3), ("Wed", 4),
+        ("Thu", 5), ("Fri", 6), ("Sat", 7), ("Sun", 1),
+    ]
+
+    private var canAddTask: Bool {
+        let titleOk = !habitTitle.trimmingCharacters(in: .whitespaces).isEmpty
+        return habitRepeats ? titleOk && !habitDays.isEmpty : titleOk
+    }
+
+    private func advance() {
+        withAnimation(.easeInOut(duration: 0.2)) { step += 1 }
+    }
+
+    var body: some View {
+        ZStack {
+            DesignSystem.Colors.background.ignoresSafeArea()
+
+            if step == 0 {
+                welcomeStep.transition(.opacity)
+            } else if step == 1 {
+                screenTimeStep.transition(.opacity)
+            } else if step == 2 {
+                healthKitStep.transition(.opacity)
+            } else if step == 3 {
+                notificationsStep.transition(.opacity)
+            } else if step == 4 {
+                appsStep.transition(.opacity)
+            } else if step == 5 {
+                habitStep.transition(.opacity)
+            }
+        }
+        .familyActivityPicker(isPresented: $showingPicker, selection: $selection)
+        .onChange(of: selection) {
+            SharedStore.shared.selectedApps = selection
+            BlockingService.shared.updateShieldsForCurrentHabitState()
+        }
+    }
+
+    // MARK: - Steps
+
+    private var welcomeStep: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            Spacer()
+
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                Text("LockIn.")
+                    .font(.system(.largeTitle, design: .default, weight: .semibold))
+                    .foregroundStyle(DesignSystem.Colors.primaryText)
+
+                Text("Block distracting apps until your habits are done.")
+                    .font(.system(.title3, weight: .regular))
+                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            primaryButton("Get started") { advance() }
+        }
+        .padding(DesignSystem.Spacing.lg)
+    }
+
+    private var screenTimeStep: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            Spacer()
+
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                Text("How blocking\nworks.")
+                    .font(.system(.largeTitle, design: .default, weight: .semibold))
+                    .foregroundStyle(DesignSystem.Colors.primaryText)
+
+                Text("LockIn uses Apple's Screen Time to block distracting apps until you finish what matters.\n\nNo accounts. No servers. No data collected.\nEverything stays on your device, always.")
+                    .font(.system(.body, weight: .regular))
+                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            primaryButton("Got it. Let's set it up.") {
+                _Concurrency.Task {
+                    try? await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+                    advance()
+                }
+            }
+        }
+        .padding(DesignSystem.Spacing.lg)
+    }
+
+    private var healthKitStep: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            Spacer()
+
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                Text("Track your\nsteps.")
+                    .font(.system(.largeTitle, design: .default, weight: .semibold))
+                    .foregroundStyle(DesignSystem.Colors.primaryText)
+
+                Text("LockIn reads your step count to automatically complete step goal tasks.")
+                    .font(.system(.body, weight: .regular))
+                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            VStack(spacing: DesignSystem.Spacing.sm) {
+                primaryButton("Allow Health Access") {
+                    _Concurrency.Task {
+                        try? await StepCountService.shared.requestAuthorization()
+                        advance()
+                    }
+                }
+                skipButton { advance() }
+            }
+        }
+        .padding(DesignSystem.Spacing.lg)
+        .onAppear {
+            // Auto-skip on devices without HealthKit (simulator, iPad without motion)
+            if !StepCountService.shared.isAvailable {
+                withAnimation(.easeInOut(duration: 0.2)) { step = 3 }
+            }
+        }
+    }
+
+    private var notificationsStep: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            Spacer()
+
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                Text("Earn your\nway in.")
+                    .font(.system(.largeTitle, design: .default, weight: .semibold))
+                    .foregroundStyle(DesignSystem.Colors.primaryText)
+
+                Text("When blocked, you can walk to earn temporary access. We'll notify you the moment you're ready.")
+                    .font(.system(.body, weight: .regular))
+                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            VStack(spacing: DesignSystem.Spacing.sm) {
+                primaryButton("Allow Notifications") {
+                    _Concurrency.Task {
+                        try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+                        advance()
+                    }
+                }
+                skipButton { advance() }
+            }
+        }
+        .padding(DesignSystem.Spacing.lg)
+    }
+
+    private var appsStep: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            Spacer()
+
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                Text("Block your\ndistractions.")
+                    .font(.system(.largeTitle, design: .default, weight: .semibold))
+                    .foregroundStyle(DesignSystem.Colors.primaryText)
+
+                Text("Pick the apps you reach for when you should be working.")
+                    .font(.system(.body, weight: .regular))
+                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            VStack(spacing: DesignSystem.Spacing.sm) {
+                if selection.applicationTokens.isEmpty {
+                    primaryButton("Choose apps") { showingPicker = true }
+                    skipButton { advance() }
+                } else {
+                    Text("\(selection.applicationTokens.count) app\(selection.applicationTokens.count == 1 ? "" : "s") selected")
+                        .font(.system(.subheadline))
+                        .foregroundStyle(DesignSystem.Colors.accent)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    primaryButton("Continue") { advance() }
+                    skipButton { showingPicker = true }
+                }
+            }
+        }
+        .padding(DesignSystem.Spacing.lg)
+    }
+
+    private var habitStep: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                Text("Add your\nfirst task.")
+                    .font(.system(.largeTitle, design: .default, weight: .semibold))
+                    .foregroundStyle(DesignSystem.Colors.primaryText)
+
+                // Title
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                    Text("What do you need to do?")
+                        .font(.system(.subheadline))
+                        .foregroundStyle(DesignSystem.Colors.secondaryText)
+
+                    TextField("", text: $habitTitle)
+                        .font(.system(.title3, weight: .regular))
+                        .foregroundStyle(DesignSystem.Colors.primaryText)
+                        .tint(DesignSystem.Colors.accent)
+                        .focused($habitFieldFocused)
+                        .submitLabel(.done)
+                        .overlay(alignment: .bottom) {
+                            Rectangle()
+                                .frame(height: 1)
+                                .foregroundStyle(DesignSystem.Colors.secondaryText.opacity(0.3))
+                                .offset(y: 8)
+                        }
+                }
+
+                // Repeats toggle
+                Toggle(isOn: $habitRepeats) {
+                    Text("Repeats")
+                        .font(.system(.body))
+                        .foregroundStyle(DesignSystem.Colors.primaryText)
+                }
+                .tint(DesignSystem.Colors.accent)
+
+                if habitRepeats {
+                    // Day chips
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                        Text("Repeat on")
+                            .font(.system(.subheadline))
+                            .foregroundStyle(DesignSystem.Colors.secondaryText)
+
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            ForEach(dayOptions, id: \.weekday) { option in
+                                let isSelected = habitDays.contains(option.weekday)
+                                Button {
+                                    if isSelected { habitDays.remove(option.weekday) }
+                                    else { habitDays.insert(option.weekday) }
+                                } label: {
+                                    Text(option.label)
+                                        .font(.system(.caption, weight: isSelected ? .semibold : .regular))
+                                        .foregroundStyle(
+                                            isSelected
+                                                ? DesignSystem.Colors.background
+                                                : DesignSystem.Colors.secondaryText
+                                        )
+                                        .padding(.horizontal, DesignSystem.Spacing.sm)
+                                        .padding(.vertical, DesignSystem.Spacing.xs + 2)
+                                        .background(
+                                            isSelected
+                                                ? DesignSystem.Colors.accent
+                                                : DesignSystem.Colors.secondaryText.opacity(0.12)
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                } else {
+                    // Once — start date chips
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                        Text("Starting")
+                            .font(.system(.subheadline))
+                            .foregroundStyle(DesignSystem.Colors.secondaryText)
+
+                        let todayStr = Date().dateString
+                        let tomorrowStr = Calendar.current.date(byAdding: .day, value: 1, to: Date())!.dateString
+                        let isCustom = habitShowingDatePicker || (habitStartDate != todayStr && habitStartDate != tomorrowStr)
+
+                        let customLabel: String = {
+                            guard isCustom, !habitShowingDatePicker,
+                                  let d = Date.from(dateString: habitStartDate) else { return "Pick date" }
+                            let f = DateFormatter()
+                            f.dateFormat = "MMM d"
+                            f.locale = Locale(identifier: "en_US_POSIX")
+                            return f.string(from: d)
+                        }()
+
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            startChip("Today",    selected: !isCustom && habitStartDate == todayStr)    { habitStartDate = todayStr;    habitShowingDatePicker = false }
+                            startChip("Tomorrow", selected: !isCustom && habitStartDate == tomorrowStr) { habitStartDate = tomorrowStr; habitShowingDatePicker = false }
+                            startChip(customLabel, selected: isCustom) { habitShowingDatePicker = isCustom ? !habitShowingDatePicker : true }
+                        }
+
+                        if isCustom && habitShowingDatePicker {
+                            DatePicker("", selection: $habitPickerDate, in: Date()..., displayedComponents: .date)
+                                .datePickerStyle(.graphical)
+                                .tint(DesignSystem.Colors.accent)
+                                .onChange(of: habitPickerDate) { _, newDate in
+                                    habitStartDate = newDate.dateString
+                                    habitShowingDatePicker = false
+                                }
+                        }
+                    }
+                }
+
+                // Step goal toggle — only if HealthKit available
+                if StepCountService.shared.isAvailable {
+                    Toggle(isOn: $habitHasStepGoal) {
+                        Text("Step goal")
+                            .font(.system(.body))
+                            .foregroundStyle(DesignSystem.Colors.primaryText)
+                    }
+                    .tint(DesignSystem.Colors.accent)
+
+                    if habitHasStepGoal {
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            ForEach(stepOptions, id: \.value) { option in
+                                let isSelected = habitStepTarget == option.value
+                                Button { habitStepTarget = option.value } label: {
+                                    Text(option.label)
+                                        .font(.system(.caption, weight: isSelected ? .semibold : .regular))
+                                        .foregroundStyle(
+                                            isSelected
+                                                ? DesignSystem.Colors.background
+                                                : DesignSystem.Colors.secondaryText
+                                        )
+                                        .padding(.horizontal, DesignSystem.Spacing.sm)
+                                        .padding(.vertical, DesignSystem.Spacing.xs + 2)
+                                        .background(
+                                            isSelected
+                                                ? DesignSystem.Colors.accent
+                                                : DesignSystem.Colors.secondaryText.opacity(0.12)
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+
+                // Blocks Apps toggle + optional start time
+                Toggle(isOn: $habitBlocksApps) {
+                    Text("Blocks Apps")
+                        .font(.system(.body))
+                        .foregroundStyle(DesignSystem.Colors.primaryText)
+                }
+                .tint(DesignSystem.Colors.accent)
+                .onChange(of: habitBlocksApps) { _, on in
+                    if !on { habitBlockingStartTime = nil; habitShowingStartTimePicker = false }
+                }
+
+                if habitBlocksApps {
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Text("from")
+                                .font(.system(.caption))
+                                .foregroundStyle(DesignSystem.Colors.secondaryText)
+                            startChip("Start of Day", selected: habitBlockingStartTime == nil) {
+                                habitBlockingStartTime = nil
+                                habitShowingStartTimePicker = false
+                            }
+                            startChip(habitBlockingStartTime == nil ? "Set time" : formatStartTime(habitBlockingStartTime!),
+                                      selected: habitBlockingStartTime != nil) {
+                                if habitBlockingStartTime == nil {
+                                    habitBlockingStartTime = Calendar.current.dateComponents([.hour, .minute], from: habitStartTimePicker)
+                                }
+                                habitShowingStartTimePicker.toggle()
+                            }
+                        }
+                        if habitShowingStartTimePicker {
+                            DatePicker("", selection: $habitStartTimePicker, displayedComponents: .hourAndMinute)
+                                .datePickerStyle(.wheel)
+                                .labelsHidden()
+                                .tint(DesignSystem.Colors.accent)
+                                .colorScheme(.dark)
+                                .onChange(of: habitStartTimePicker) { _, date in
+                                    habitBlockingStartTime = Calendar.current.dateComponents([.hour, .minute], from: date)
+                                }
+                        }
+                    }
+                }
+
+                let titleFilled = !habitTitle.trimmingCharacters(in: .whitespaces).isEmpty
+                primaryButton(titleFilled ? "Add & finish" : "Skip") {
+                    finish()
+                }
+                .disabled(titleFilled && !canAddTask)
+                .padding(.bottom, DesignSystem.Spacing.lg)
+            }
+            .padding(DesignSystem.Spacing.lg)
+        }
+        .scrollDisabled(habitShowingDatePicker)
+        .simultaneousGesture(TapGesture().onEnded { habitShowingStartTimePicker = false })
+        .onAppear { habitFieldFocused = true }
+    }
+
+    // MARK: - Shared Components
+
+    private func primaryButton(_ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(.body, weight: .medium))
+                .foregroundStyle(DesignSystem.Colors.background)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, DesignSystem.Spacing.md)
+                .background(DesignSystem.Colors.accent)
+                .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md))
+        }
+    }
+
+    private func skipButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text("Skip for now")
+                .font(.system(.subheadline))
+                .foregroundStyle(DesignSystem.Colors.secondaryText)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, DesignSystem.Spacing.sm)
+        }
+    }
+
+    private func formatStartTime(_ comps: DateComponents) -> String {
+        var c = comps; c.second = 0
+        guard let date = Calendar.current.date(from: c) else { return "" }
+        let f = DateFormatter(); f.timeStyle = .short; f.dateStyle = .none
+        return f.string(from: date)
+    }
+
+    @ViewBuilder
+    private func startChip(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(.caption, weight: selected ? .semibold : .regular))
+                .foregroundStyle(selected ? DesignSystem.Colors.background : DesignSystem.Colors.secondaryText)
+                .padding(.horizontal, DesignSystem.Spacing.sm)
+                .padding(.vertical, DesignSystem.Spacing.xs + 2)
+                .background(selected ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Actions
+
+    private func finish() {
+        let trimmed = habitTitle.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty && canAddTask {
+            let recurrence: TaskRecurrence = habitRepeats
+                ? .weekly(days: habitDays)
+                : .once(startDate: habitStartDate)
+            SharedStore.shared.addTask(Task(
+                title: trimmed,
+                recurrence: recurrence,
+                blocksApps: habitBlocksApps,
+                stepTarget: habitHasStepGoal ? habitStepTarget : nil,
+                blockingStartTime: habitBlockingStartTime
+            ))
+            BlockingService.shared.updateShieldsForCurrentHabitState()
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        SharedStore.shared.hasCompletedOnboarding = true
+        NotificationCenter.default.post(name: .habitsDidChange, object: nil)
+        onComplete()
+    }
+}
+
+#Preview("Welcome") {
+    OnboardingView { }
+}

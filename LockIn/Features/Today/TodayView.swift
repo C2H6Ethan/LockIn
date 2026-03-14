@@ -1,0 +1,185 @@
+import SwiftUI
+
+// Animatable conformance is required by KeyframeAnimator.
+private struct StreakAnimValues: Animatable {
+    var scale: Double = 1.0
+    var brightness: Double = 0.0
+    var yOffset: Double = 0.0
+
+    var animatableData: AnimatablePair<Double, AnimatablePair<Double, Double>> {
+        get { AnimatablePair(scale, AnimatablePair(brightness, yOffset)) }
+        set {
+            scale = newValue.first
+            brightness = newValue.second.first
+            yOffset = newValue.second.second
+        }
+    }
+}
+
+struct TodayView: View {
+
+    @State private var viewModel = TodayViewModel()
+    // Local trigger so KeyframeAnimator sees a change after the view exists.
+    @State private var burstTrigger = 0
+
+    var body: some View {
+        ZStack {
+            DesignSystem.Colors.background.ignoresSafeArea()
+
+            if viewModel.todayTasks.isEmpty && viewModel.hasCompletedTaskToday {
+                allDoneFullState
+            } else if viewModel.todayTasks.isEmpty {
+                emptyState
+            } else {
+                taskList
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    viewModel.showingAddTask = true
+                } label: {
+                    Image(systemName: "plus")
+                        .foregroundStyle(DesignSystem.Colors.accent)
+                }
+            }
+        }
+        .safeAreaInset(edge: .top) {
+            streakBanner
+        }
+        .onAppear { viewModel.onAppear() }
+        // Streak incremented while the list is still visible (non-final task completion):
+        // fire haptic + burst immediately since the banner is already on screen.
+        .onChange(of: viewModel.streakAnimationTrigger) {
+            burstTrigger += 1
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        }
+        .sheet(isPresented: $viewModel.showingAddTask) {
+            AddTaskSheet(viewModel: viewModel)
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { viewModel.pendingFreezeOffer },
+            set: { _ in }
+        )) {
+            StreakFreezeSheet(
+                onUse: { viewModel.consumeFreeze() },
+                onDecline: { viewModel.declineFreeze() }
+            )
+        }
+    }
+
+    // MARK: - Subviews
+
+    private var streakBanner: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+            Text("Today's Tasks")
+                .font(.system(.largeTitle, weight: .bold))
+                .foregroundStyle(DesignSystem.Colors.primaryText)
+
+            if viewModel.streak > 0 {
+                KeyframeAnimator(
+                    initialValue: StreakAnimValues(),
+                    trigger: burstTrigger
+                ) { value in
+                    Text("\(viewModel.streak) \(viewModel.streak == 1 ? "day" : "days") locked in")
+                        .font(.system(.subheadline, weight: .medium))
+                        .foregroundStyle(DesignSystem.Colors.accent)
+                        .scaleEffect(value.scale, anchor: .leading)
+                        .brightness(value.brightness)
+                        .offset(y: value.yOffset)
+                } keyframes: { _ in
+                    KeyframeTrack(\.scale) {
+                        LinearKeyframe(1.0, duration: 0.01)
+                        SpringKeyframe(1.22, duration: 0.14, spring: .init(duration: 0.14, bounce: 0.6))
+                        SpringKeyframe(0.96, duration: 0.10, spring: .smooth)
+                        SpringKeyframe(1.0,  duration: 0.18, spring: .smooth)
+                    }
+                    KeyframeTrack(\.brightness) {
+                        LinearKeyframe(0.0,  duration: 0.01)
+                        LinearKeyframe(0.55, duration: 0.10)
+                        LinearKeyframe(0.0,  duration: 0.28)
+                    }
+                    KeyframeTrack(\.yOffset) {
+                        LinearKeyframe(0.0, duration: 0.01)
+                        SpringKeyframe(-4,  duration: 0.12, spring: .bouncy)
+                        SpringKeyframe(0,   duration: 0.20, spring: .smooth)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, DesignSystem.Spacing.lg)
+        .padding(.top, DesignSystem.Spacing.sm)
+        .padding(.bottom, DesignSystem.Spacing.xs)
+        .background(DesignSystem.Colors.background)
+    }
+
+    private var taskList: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                if viewModel.allBlockingDone {
+                    allDoneRow
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                }
+
+                ForEach(viewModel.todayTasks) { task in
+                    TaskRowView(
+                        task: task,
+                        onComplete: {
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                viewModel.completeTask(task)
+                            }
+                        },
+                        stepCount: task.stepTarget != nil ? viewModel.stepsToday : nil
+                    )
+                    .padding(.horizontal, DesignSystem.Spacing.lg)
+                    .transition(.asymmetric(
+                        insertion: .opacity,
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
+                }
+            }
+            .padding(.top, DesignSystem.Spacing.sm)
+        }
+        .animation(.easeOut(duration: 0.25), value: viewModel.todayTasks.map { $0.id })
+    }
+
+    // Shown inline when all blocking tasks done but non-blocking remain.
+    private var allDoneRow: some View {
+        Text("Blocking tasks done — apps unlocked.")
+            .font(.system(.subheadline, weight: .medium))
+            .foregroundStyle(DesignSystem.Colors.accent)
+            .padding(.horizontal, DesignSystem.Spacing.lg)
+            .padding(.vertical, DesignSystem.Spacing.sm)
+    }
+
+    // Shown when every task for the day is gone.
+    // onAppear fires the burst after the transition completes so
+    // KeyframeAnimator sees a trigger change while the view is live.
+    private var allDoneFullState: some View {
+        Text("All done for today.")
+            .font(.system(.title3, weight: .medium))
+            .foregroundStyle(DesignSystem.Colors.primaryText)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyState: some View {
+        Text("No tasks today. Enjoy your day.")
+            .font(.system(.body))
+            .foregroundStyle(DesignSystem.Colors.secondaryText)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .multilineTextAlignment(.center)
+            .padding(DesignSystem.Spacing.lg)
+    }
+}
+
+#Preview {
+    NavigationStack {
+        TodayView()
+    }
+}
