@@ -26,10 +26,12 @@ struct TodayView: View {
         ZStack {
             DesignSystem.Colors.background.ignoresSafeArea()
 
-            if viewModel.todayTasks.isEmpty && viewModel.hasCompletedTaskToday {
-                allDoneFullState
-            } else if viewModel.todayTasks.isEmpty {
-                emptyState
+            if viewModel.todayTasks.isEmpty && viewModel.completedTasks.isEmpty {
+                if viewModel.hasCompletedTaskToday {
+                    allDoneFullState
+                } else {
+                    emptyState
+                }
             } else {
                 taskList
             }
@@ -137,21 +139,37 @@ struct TodayView: View {
                         },
                         stepCount: task.stepTarget != nil ? viewModel.stepsToday : nil
                     )
+                    .id("incomplete-\(task.id)")
                     .padding(.horizontal, DesignSystem.Spacing.lg)
-                    .transition(.asymmetric(
-                        insertion: .opacity,
-                        removal: .move(edge: .leading).combined(with: .opacity)
-                    ))
+                    .transition(.opacity)
+                }
+
+                ForEach(viewModel.completedTasks) { task in
+                    TaskRowView(
+                        task: task,
+                        onComplete: {},
+                        stepCount: task.stepTarget != nil ? viewModel.stepsToday : nil,
+                        isCompleted: true,
+                        onUncomplete: {
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                viewModel.uncompleteTask(task)
+                            }
+                        }
+                    )
+                    .id("completed-\(task.id)")
+                    .padding(.horizontal, DesignSystem.Spacing.lg)
+                    .transition(.opacity)
                 }
             }
             .padding(.top, DesignSystem.Spacing.sm)
         }
         .animation(.easeOut(duration: 0.25), value: viewModel.todayTasks.map { $0.id })
+        .animation(.easeOut(duration: 0.25), value: viewModel.completedTasks.map { $0.id })
     }
 
-    // Shown inline when all blocking tasks done but non-blocking remain.
+    // Shown inline when all blocking tasks done. Message changes when everything is done.
     private var allDoneRow: some View {
-        Text("Blocking tasks done — apps unlocked.")
+        Text(viewModel.todayTasks.isEmpty ? "All done for today." : "Blocking tasks done — apps unlocked.")
             .font(.system(.subheadline, weight: .medium))
             .foregroundStyle(DesignSystem.Colors.accent)
             .padding(.horizontal, DesignSystem.Spacing.lg)

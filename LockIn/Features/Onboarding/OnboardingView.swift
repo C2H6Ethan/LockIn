@@ -75,7 +75,7 @@ struct OnboardingView: View {
             Spacer()
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-                Text("LockIn.")
+                Text("Lock In.")
                     .font(.system(.largeTitle, design: .default, weight: .semibold))
                     .foregroundStyle(DesignSystem.Colors.primaryText)
 
@@ -101,7 +101,7 @@ struct OnboardingView: View {
                     .font(.system(.largeTitle, design: .default, weight: .semibold))
                     .foregroundStyle(DesignSystem.Colors.primaryText)
 
-                Text("LockIn uses Apple's Screen Time to block distracting apps until you finish what matters.\n\nNo accounts. No servers. No data collected.\nEverything stays on your device, always.")
+                Text("Lock In uses Apple's Screen Time to block distracting apps until you finish what matters.\n\nNo accounts. No servers. No data collected.\nEverything stays on your device, always.")
                     .font(.system(.body, weight: .regular))
                     .foregroundStyle(DesignSystem.Colors.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -128,7 +128,7 @@ struct OnboardingView: View {
                     .font(.system(.largeTitle, design: .default, weight: .semibold))
                     .foregroundStyle(DesignSystem.Colors.primaryText)
 
-                Text("LockIn reads your step count to automatically complete step goal tasks.")
+                Text("Lock In reads your step count to automatically complete step goal tasks.")
                     .font(.system(.body, weight: .regular))
                     .foregroundStyle(DesignSystem.Colors.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

@@ -5,8 +5,10 @@ struct TaskRowView: View {
     let task: TodayTask
     let onComplete: () -> Void
     var stepCount: Int? = nil   // non-nil only for step goal tasks
+    var isCompleted: Bool = false
+    var onUncomplete: (() -> Void)? = nil
 
-    @State private var isCompleting = false
+    @State private var hapticTrigger = false
 
     var body: some View {
         HStack(alignment: .top, spacing: DesignSystem.Spacing.md) {
@@ -15,16 +17,27 @@ struct TaskRowView: View {
                 Image(systemName: "figure.walk")
                     .font(.system(size: 18))
                     .foregroundStyle(
-                        task.blocksApps
+                        isCompleted
                             ? DesignSystem.Colors.accent
-                            : DesignSystem.Colors.secondaryText
+                            : task.blocksApps
+                                ? DesignSystem.Colors.accent
+                                : DesignSystem.Colors.secondaryText
                     )
                     .frame(width: 22, height: 22)
                     .padding(.top, 2)
+            } else if isCompleted {
+                Button {
+                    onUncomplete?()
+                } label: {
+                    Circle()
+                        .fill(DesignSystem.Colors.accent)
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
             } else {
                 Button {
-                    guard !isCompleting else { return }
-                    isCompleting = true
+                    hapticTrigger.toggle()
                     onComplete()
                 } label: {
                     Circle()
@@ -37,7 +50,7 @@ struct TaskRowView: View {
                         .frame(width: 22, height: 22)
                 }
                 .buttonStyle(.plain)
-                .sensoryFeedback(.success, trigger: isCompleting)
+                .sensoryFeedback(.success, trigger: hapticTrigger)
                 .padding(.top, 2)
             }
 
@@ -45,17 +58,23 @@ struct TaskRowView: View {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 Text(task.title)
                     .font(.system(.body, design: .default, weight: .regular))
-                    .foregroundStyle(DesignSystem.Colors.primaryText)
+                    .foregroundStyle(
+                        isCompleted
+                            ? DesignSystem.Colors.secondaryText
+                            : DesignSystem.Colors.primaryText
+                    )
 
                 if let target = task.stepTarget {
-                    // Step progress subtitle
-                    let current = stepCount ?? 0
+                    // Step progress subtitle — cap display at target when completed
+                    let current = isCompleted ? target : (stepCount ?? 0)
                     Text("\(current.formatted()) / \(target.formatted()) steps")
                         .font(.system(.caption, design: .default, weight: .regular))
                         .foregroundStyle(
-                            task.blocksApps
-                                ? DesignSystem.Colors.accent
-                                : DesignSystem.Colors.secondaryText
+                            isCompleted
+                                ? DesignSystem.Colors.secondaryText
+                                : task.blocksApps
+                                    ? DesignSystem.Colors.accent
+                                    : DesignSystem.Colors.secondaryText
                         )
                 } else if task.isCarryOver, let day = task.originalDay {
                     Text(task.isOnce ? "since \(day)" : "unfinished from \(day)")
@@ -68,6 +87,7 @@ struct TaskRowView: View {
         }
         .padding(.vertical, DesignSystem.Spacing.sm)
         .contentShape(Rectangle())
+        .opacity(isCompleted ? 0.45 : 1.0)
     }
 }
     

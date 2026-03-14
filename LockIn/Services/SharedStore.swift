@@ -266,10 +266,6 @@ final class SharedStore {
         set.insert(id)
         completionLog[dateString] = set
         saveCompletionLog()
-        // Auto-delete one-time tasks on completion
-        if let task = tasks.first(where: { $0.id == id }), task.isOnce {
-            removeTask(id: id)
-        }
     }
 
     func uncompleteTask(_ id: UUID, on dateString: String) {
@@ -320,12 +316,21 @@ final class SharedStore {
 
     /// Called on app open — resets the streak if any day with blocking tasks was missed.
     /// Only offers a freeze if EXACTLY 1 day was missed — multiple missed days get no freeze.
+    /// Also cleans up once tasks completed on a previous day.
     func checkAndUpdateStreak(today: Date = Date()) {
+        let todayString = today.dateString
+        let completedOnceTaskIDs = tasks
+            .filter { $0.isOnce }
+            .filter { task in
+                guard let completedDate = completionLog.first(where: { $0.value.contains(task.id) })?.key else { return false }
+                return completedDate < todayString
+            }
+            .map { $0.id }
+        completedOnceTaskIDs.forEach { removeTask(id: $0) }
         guard streakData.currentStreak > 0 else { return }
         guard let lastString = streakData.lastCompletedDate,
               let lastDate = Date.from(dateString: lastString) else { return }
 
-        let todayString = today.dateString
         if lastString == todayString { return } // already updated today
 
         // Scan ALL days from lastDate+1 up to yesterday and count missed days.
@@ -415,7 +420,7 @@ final class SharedStore {
             }
         }
 
-        // One-time tasks: appear from startDate onward until completed (auto-deleted)
+        // One-time tasks: appear from startDate onward until completed
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "MMM d"
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
@@ -424,6 +429,9 @@ final class SharedStore {
             guard case .once(let startDateString) = task.recurrence else { continue }
             guard startDateString <= todayString else { continue } // hasn't started yet
             guard !seenIds.contains(task.id) else { continue }
+            // Skip if already completed (check all dates since once tasks log on today)
+            let isCompleted = completionLog.values.contains { $0.contains(task.id) }
+            guard !isCompleted else { continue }
 
             seenIds.insert(task.id)
             let isCarryOver = startDateString < todayString
@@ -437,7 +445,7 @@ final class SharedStore {
                 blocksApps: task.blocksApps,
                 isCarryOver: isCarryOver,
                 originalDay: originalDay,
-                scheduledDateString: todayString, // always log on today; task is then auto-deleted
+                scheduledDateString: todayString, // always log on today
                 isOnce: true,
                 stepTarget: task.stepTarget
             ))
@@ -475,6 +483,18 @@ final class SharedStore {
         defaults.set(data, forKey: Keys.completionLog)
         defaults.synchronize()
     }
+
+    // MARK: - Debug
+
+#if DEBUG
+    func resetForScreenshots() {
+        tasks = []
+        completionLog = [:]
+        saveTasks()
+        saveCompletionLog()
+        streakData = StreakData()
+    }
+#endif
 
     // MARK: - Keys
 

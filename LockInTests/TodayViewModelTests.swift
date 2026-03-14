@@ -314,6 +314,180 @@ final class TodayViewModelTests: XCTestCase {
         XCTAssertEqual(store.streakData.currentStreak, 3)
     }
 
+    // MARK: - completedTasks
+
+    func testInitialState_completedTasksEmpty() {
+        XCTAssertTrue(sut.completedTasks.isEmpty)
+    }
+
+    func testCompleteTask_appearsInCompletedTasks() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
+        sut.onAppear()
+
+        sut.completeTask(sut.todayTasks[0])
+
+        XCTAssertEqual(sut.completedTasks.count, 1)
+        XCTAssertEqual(sut.completedTasks[0].title, "Run")
+    }
+
+    func testCompleteTask_multipleCompleted_allInCompletedTasks() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
+        store.addTask(Task(title: "Meditate", activeDays: [todayWeekday]))
+        sut.onAppear()
+
+        sut.completeTask(sut.todayTasks.first(where: { $0.title == "Run" })!)
+        sut.completeTask(sut.todayTasks.first(where: { $0.title == "Meditate" })!)
+
+        XCTAssertEqual(sut.completedTasks.count, 2)
+    }
+
+    func testCompleteTask_completedTaskStillRemovedFromTodayTasks() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
+        sut.onAppear()
+
+        sut.completeTask(sut.todayTasks[0])
+
+        XCTAssertTrue(sut.todayTasks.isEmpty)
+        XCTAssertEqual(sut.completedTasks.count, 1)
+    }
+
+    func testSync_rebuildsCompletedTasksFromStore_afterReopen() {
+        // Simulate completing a task in a previous session by writing directly to store
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        let task = Task(title: "Run", activeDays: [todayWeekday])
+        store.addTask(task)
+        store.completeTask(task.id, on: Date().dateString)
+
+        // Fresh viewModel (simulates app reopen)
+        let freshVM = TodayViewModel(store: store, blocking: blocking)
+        freshVM.onAppear()
+
+        XCTAssertEqual(freshVM.completedTasks.count, 1)
+        XCTAssertEqual(freshVM.completedTasks[0].title, "Run")
+    }
+
+    func testCompleteTask_preservesCompletedOrder() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
+        store.addTask(Task(title: "Meditate", activeDays: [todayWeekday]))
+        store.addTask(Task(title: "Read", activeDays: [todayWeekday]))
+        sut.onAppear()
+
+        let run = sut.todayTasks.first(where: { $0.title == "Run" })!
+        let meditate = sut.todayTasks.first(where: { $0.title == "Meditate" })!
+        sut.completeTask(run)
+        sut.completeTask(meditate)
+
+        XCTAssertEqual(sut.completedTasks[0].title, "Run")
+        XCTAssertEqual(sut.completedTasks[1].title, "Meditate")
+        XCTAssertEqual(sut.todayTasks.count, 1)
+        XCTAssertEqual(sut.todayTasks[0].title, "Read")
+    }
+
+    // MARK: - uncompleteTask
+
+    func testUncompleteTask_removesFromCompletedTasks() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
+        sut.onAppear()
+        sut.completeTask(sut.todayTasks[0])
+        XCTAssertEqual(sut.completedTasks.count, 1)
+
+        sut.uncompleteTask(sut.completedTasks[0])
+
+        XCTAssertTrue(sut.completedTasks.isEmpty)
+    }
+
+    func testUncompleteTask_taskReappearsInTodayTasks() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
+        sut.onAppear()
+        sut.completeTask(sut.todayTasks[0])
+
+        sut.uncompleteTask(sut.completedTasks[0])
+
+        XCTAssertEqual(sut.todayTasks.count, 1)
+        XCTAssertEqual(sut.todayTasks[0].title, "Run")
+    }
+
+    func testUncompleteTask_removesFromCompletionLog() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        let task = Task(title: "Run", activeDays: [todayWeekday])
+        store.addTask(task)
+        sut.onAppear()
+        sut.completeTask(sut.todayTasks[0])
+        XCTAssertTrue(store.completionLog[Date().dateString]?.contains(task.id) ?? false)
+
+        sut.uncompleteTask(sut.completedTasks[0])
+
+        XCTAssertFalse(store.completionLog[Date().dateString]?.contains(task.id) ?? false)
+    }
+
+    func testUncompleteTask_triggersShieldUpdate() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Run", activeDays: [todayWeekday], blocksApps: true))
+        sut.onAppear()
+        sut.completeTask(sut.todayTasks[0])
+        let callsBefore = mockApplier.removeCallCount + mockApplier.applyCallCount
+
+        sut.uncompleteTask(sut.completedTasks[0])
+
+        XCTAssertGreaterThan(mockApplier.removeCallCount + mockApplier.applyCallCount, callsBefore)
+    }
+
+    func testUncompleteTask_blockingTask_allBlockingDoneBecomeFalse() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Run", activeDays: [todayWeekday], blocksApps: true))
+        sut.onAppear()
+        sut.completeTask(sut.todayTasks[0])
+        XCTAssertTrue(sut.allBlockingDone)
+
+        sut.uncompleteTask(sut.completedTasks[0])
+
+        XCTAssertFalse(sut.allBlockingDone)
+    }
+
+    func testUncompleteTask_onlyRemovesMatchingTask() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
+        store.addTask(Task(title: "Meditate", activeDays: [todayWeekday]))
+        sut.onAppear()
+        sut.completeTask(sut.todayTasks.first(where: { $0.title == "Run" })!)
+        sut.completeTask(sut.todayTasks.first(where: { $0.title == "Meditate" })!)
+        XCTAssertEqual(sut.completedTasks.count, 2)
+
+        sut.uncompleteTask(sut.completedTasks.first(where: { $0.title == "Run" })!)
+
+        XCTAssertEqual(sut.completedTasks.count, 1)
+        XCTAssertEqual(sut.completedTasks[0].title, "Meditate")
+        XCTAssertEqual(sut.todayTasks.count, 1)
+        XCTAssertEqual(sut.todayTasks[0].title, "Run")
+    }
+
+    func testCompleteUncompleteComplete_worksCorrectly() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
+        sut.onAppear()
+
+        // First complete
+        sut.completeTask(sut.todayTasks[0])
+        XCTAssertTrue(sut.todayTasks.isEmpty)
+        XCTAssertEqual(sut.completedTasks.count, 1)
+
+        // Uncomplete
+        sut.uncompleteTask(sut.completedTasks[0])
+        XCTAssertEqual(sut.todayTasks.count, 1)
+        XCTAssertTrue(sut.completedTasks.isEmpty)
+
+        // Complete again
+        sut.completeTask(sut.todayTasks[0])
+        XCTAssertTrue(sut.todayTasks.isEmpty)
+        XCTAssertEqual(sut.completedTasks.count, 1)
+    }
+
     // MARK: - Notification refresh
 
     func testHabitsDidChange_notification_reloadsTasks() {

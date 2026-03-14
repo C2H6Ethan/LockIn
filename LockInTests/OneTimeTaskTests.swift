@@ -80,17 +80,40 @@ final class OneTimeTaskTests: XCTestCase {
         XCTAssertTrue(result[0].isOnce)
     }
 
-    // MARK: - Completion and auto-delete
+    // MARK: - Completion and deferred delete
 
-    func testOnceTask_autoDeletedOnCompletion() {
+    func testOnceTask_notDeletedImmediatelyOnCompletion() {
         let today = Date()
         let task = Task(title: "Dentist", recurrence: .once(startDate: today.dateString))
         store.addTask(task)
-        XCTAssertEqual(store.tasks.count, 1)
 
         store.completeTask(task.id, on: today.dateString)
 
-        XCTAssertTrue(store.tasks.isEmpty, "Once task must be auto-deleted on completion")
+        XCTAssertEqual(store.tasks.count, 1, "Once task must NOT be deleted immediately — stays for completed list")
+    }
+
+    func testOnceTask_deletedByCheckAndUpdateStreak_nextDay() {
+        let today = Date()
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
+        let task = Task(title: "Dentist", recurrence: .once(startDate: yesterday.dateString))
+        store.addTask(task)
+        store.completeTask(task.id, on: yesterday.dateString)
+        XCTAssertEqual(store.tasks.count, 1)
+
+        store.checkAndUpdateStreak(today: today)
+
+        XCTAssertTrue(store.tasks.isEmpty, "Once task completed yesterday must be deleted on next day's check")
+    }
+
+    func testOnceTask_notDeletedByCheckAndUpdateStreak_sameDay() {
+        let today = Date()
+        let task = Task(title: "Dentist", recurrence: .once(startDate: today.dateString))
+        store.addTask(task)
+        store.completeTask(task.id, on: today.dateString)
+
+        store.checkAndUpdateStreak(today: today)
+
+        XCTAssertEqual(store.tasks.count, 1, "Once task completed today must NOT be deleted yet")
     }
 
     func testOnceTask_doesNotReappearAfterCompletion() {

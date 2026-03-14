@@ -8,6 +8,7 @@ final class TodayViewModel {
     // MARK: - State
 
     var todayTasks: [TodayTask] = []
+    private(set) var completedTasks: [TodayTask] = []
     var streak: Int = 0
     var showingAddTask = false
     private(set) var hasCompletedTaskToday = false
@@ -124,12 +125,20 @@ final class TodayViewModel {
         blocking.updateShieldsForCurrentHabitState()
     }
 
+    func uncompleteTask(_ task: TodayTask) {
+        store.uncompleteTask(task.id, on: task.scheduledDateString)
+        completedTasks.removeAll { $0.id == task.id }
+        blocking.updateShieldsForCurrentHabitState()
+        sync()
+    }
+
     func completeTask(_ task: TodayTask) {
         let prevStreak = store.streakData.currentStreak
         // Log on the task's original scheduled date (past date for carryovers).
         store.completeTask(task.id, on: task.scheduledDateString)
         store.updateStreak(for: Date().dateString)
         todayTasks.removeAll { $0.id == task.id }
+        completedTasks.append(task)
         hasCompletedTaskToday = true
         blocking.updateShieldsForCurrentHabitState()
         SchedulingService.shared.rescheduleReminderIfNeeded()
@@ -175,7 +184,25 @@ final class TodayViewModel {
             if a.isCarryOver && !b.isCarryOver { return true }
             return false
         }
+
+        // Rebuild completed tasks from store so they survive app reopen
+        let completedIDs = store.completionLog[Date().dateString] ?? []
+        completedTasks = store.tasks
+            .filter { completedIDs.contains($0.id) }
+            .map { task in
+                TodayTask(
+                    id: task.id,
+                    title: task.title,
+                    blocksApps: task.blocksApps,
+                    isCarryOver: false,
+                    originalDay: nil,
+                    scheduledDateString: Date().dateString,
+                    isOnce: task.isOnce,
+                    stepTarget: task.stepTarget
+                )
+            }
+
         streak = store.streakData.currentStreak
-        hasCompletedTaskToday = !(store.completionLog[Date().dateString]?.isEmpty ?? true)
+        hasCompletedTaskToday = !completedIDs.isEmpty
     }
 }
