@@ -154,7 +154,7 @@ struct AddTaskSheet: View {
                         }
                         .tint(DesignSystem.Colors.accent)
 
-                        Text("Auto completes task with steps")
+                        Text("Auto-completes task with steps")
                             .font(.system(.caption))
                             .foregroundStyle(DesignSystem.Colors.secondaryText)
                     }

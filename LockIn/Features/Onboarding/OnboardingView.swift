@@ -212,7 +212,15 @@ struct OnboardingView: View {
                         .foregroundStyle(DesignSystem.Colors.accent)
                         .frame(maxWidth: .infinity, alignment: .center)
                     primaryButton("Continue") { advance() }
-                    skipButton { showingPicker = true }
+                    Button {
+                        showingPicker = true
+                    } label: {
+                        Text("Change apps")
+                            .font(.system(.subheadline))
+                            .foregroundStyle(DesignSystem.Colors.secondaryText)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, DesignSystem.Spacing.sm)
+                    }
                 }
             }
         }
@@ -328,12 +336,18 @@ struct OnboardingView: View {
 
                 // Step goal toggle — only if HealthKit available
                 if StepCountService.shared.isAvailable {
-                    Toggle(isOn: $habitHasStepGoal) {
-                        Text("Step goal")
-                            .font(.system(.body))
-                            .foregroundStyle(DesignSystem.Colors.primaryText)
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                        Toggle(isOn: $habitHasStepGoal) {
+                            Text("Step goal")
+                                .font(.system(.body))
+                                .foregroundStyle(DesignSystem.Colors.primaryText)
+                        }
+                        .tint(DesignSystem.Colors.accent)
+
+                        Text("Auto-completes task with steps")
+                            .font(.system(.caption))
+                            .foregroundStyle(DesignSystem.Colors.secondaryText)
                     }
-                    .tint(DesignSystem.Colors.accent)
 
                     if habitHasStepGoal {
                         HStack(spacing: DesignSystem.Spacing.xs) {

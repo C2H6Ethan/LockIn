@@ -179,12 +179,18 @@ struct EditTaskSheet: View {
 
                 // Step goal toggle + chips — hidden if HealthKit unavailable
                 if StepCountService.shared.isAvailable {
-                    Toggle(isOn: $hasStepGoal) {
-                        Text("Step goal")
-                            .font(.system(.body))
-                            .foregroundStyle(DesignSystem.Colors.primaryText)
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                        Toggle(isOn: $hasStepGoal) {
+                            Text("Step goal")
+                                .font(.system(.body))
+                                .foregroundStyle(DesignSystem.Colors.primaryText)
+                        }
+                        .tint(DesignSystem.Colors.accent)
+
+                        Text("Auto-completes task with steps")
+                            .font(.system(.caption))
+                            .foregroundStyle(DesignSystem.Colors.secondaryText)
                     }
-                    .tint(DesignSystem.Colors.accent)
 
                     if hasStepGoal {
                         HStack(spacing: DesignSystem.Spacing.xs) {
