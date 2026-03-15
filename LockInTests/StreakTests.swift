@@ -264,4 +264,128 @@ final class StreakTests: XCTestCase {
         store.checkAndUpdateStreak(today: today)
         XCTAssertEqual(store.streakData.currentStreak, 0) // already 0, no change needed
     }
+
+    // MARK: - checkAndUpdateStreak: once tasks (regression for once-task blind spot)
+
+    func testCheckAndUpdateStreak_missedOnceTask_resetsStreak() {
+        // Bug: once tasks have activeDays=[] so the old scanner never detected them as missed.
+        // streak = 3, lastCompleted = Mar 9. Mar 10 had a once task, never completed → should reset.
+        let today = makeDate(year: 2026, month: 3, day: 11)          // Wed
+        let yesterday = makeDate(year: 2026, month: 3, day: 10)      // Tue
+        let twoDaysAgo = makeDate(year: 2026, month: 3, day: 9)      // Mon
+        store.streakData = StreakData(currentStreak: 3, longestStreak: 3, lastCompletedDate: twoDaysAgo.dateString)
+        store.streakFreezeCount = 0
+        store.streakFreezeWeekString = today.isoWeekString
+
+        let task = Task(title: "Write", recurrence: .once(startDate: yesterday.dateString), blocksApps: true)
+        store.addTask(task)
+
+        store.checkAndUpdateStreak(today: today)
+
+        XCTAssertEqual(store.streakData.currentStreak, 0)
+    }
+
+    func testCheckAndUpdateStreak_completedOnceTask_keepStreak() {
+        // A once task started yesterday but WAS completed yesterday → not a missed day, streak intact.
+        let today = makeDate(year: 2026, month: 3, day: 11)
+        let yesterday = makeDate(year: 2026, month: 3, day: 10)
+        let twoDaysAgo = makeDate(year: 2026, month: 3, day: 9)
+        store.streakData = StreakData(currentStreak: 3, longestStreak: 3, lastCompletedDate: twoDaysAgo.dateString)
+        store.streakFreezeCount = 0
+        store.streakFreezeWeekString = today.isoWeekString
+
+        let task = Task(title: "Write", recurrence: .once(startDate: yesterday.dateString), blocksApps: true)
+        store.addTask(task)
+        store.completeTask(task.id, on: yesterday.dateString)
+
+        store.checkAndUpdateStreak(today: today)
+
+        XCTAssertEqual(store.streakData.currentStreak, 3)
+    }
+
+    func testCheckAndUpdateStreak_missedOnceTask_offersFreezeWhenAvailable() {
+        // One missed day with a once task + freeze available → offer freeze, don't reset yet.
+        let today = makeDate(year: 2026, month: 3, day: 11)
+        let yesterday = makeDate(year: 2026, month: 3, day: 10)
+        let twoDaysAgo = makeDate(year: 2026, month: 3, day: 9)
+        store.streakData = StreakData(currentStreak: 3, longestStreak: 3, lastCompletedDate: twoDaysAgo.dateString)
+        store.streakFreezeCount = 1
+        store.streakFreezeWeekString = today.isoWeekString
+
+        let task = Task(title: "Write", recurrence: .once(startDate: yesterday.dateString), blocksApps: true)
+        store.addTask(task)
+
+        store.checkAndUpdateStreak(today: today)
+
+        XCTAssertTrue(store.pendingFreezeOffer)
+        XCTAssertEqual(store.streakData.currentStreak, 3) // held pending freeze decision
+    }
+
+    func testCheckAndUpdateStreak_onceTaskStartedTwoDaysAgo_stillCountsAsMissed() {
+        // A once task that started 2 days ago and was never completed counts as missed
+        // on its start date, not just on the immediately preceding day.
+        let today = makeDate(year: 2026, month: 3, day: 12)         // Thu
+        let threeDaysAgo = makeDate(year: 2026, month: 3, day: 9)   // Mon — last completed
+        let twoDaysAgo = makeDate(year: 2026, month: 3, day: 10)    // Tue — once task start
+        store.streakData = StreakData(currentStreak: 5, longestStreak: 5, lastCompletedDate: threeDaysAgo.dateString)
+        store.streakFreezeCount = 0
+        store.streakFreezeWeekString = today.isoWeekString
+
+        let task = Task(title: "Read", recurrence: .once(startDate: twoDaysAgo.dateString), blocksApps: true)
+        store.addTask(task)
+
+        store.checkAndUpdateStreak(today: today)
+
+        XCTAssertEqual(store.streakData.currentStreak, 0)
+    }
+
+    // MARK: - updateStreak: gap check with once tasks (regression)
+
+    func testUpdateStreak_gapContainsOnceTask_resetsToOne() {
+        // Bug: old gap check used activeDays only, so once tasks were invisible.
+        // Mon: completed weekly task → streak 1.
+        // Tue: once task starts (in the gap), never completed that day.
+        // Thu: complete both the weekly Thu task and the once task carryover.
+        // Gap (Tue) had a once task → gapIsAllFree must be false → streak resets to 1, not 2.
+        let monday   = makeDate(year: 2026, month: 3, day: 9)   // weekday 2
+        let tuesday  = makeDate(year: 2026, month: 3, day: 10)  // weekday 3
+        let thursday = makeDate(year: 2026, month: 3, day: 12)  // weekday 5
+
+        let monTask = addBlockingTask(on: 2)
+        store.completeTask(monTask.id, on: monday.dateString)
+        store.updateStreak(for: monday.dateString)
+        XCTAssertEqual(store.streakData.currentStreak, 1)
+
+        // Once task starts Tuesday — not completed Tuesday, carried over to Thursday
+        let onceTask = Task(title: "Read", recurrence: .once(startDate: tuesday.dateString), blocksApps: true)
+        store.addTask(onceTask)
+
+        // Thursday: complete both the weekly task and the once task carryover
+        let thuTask = addBlockingTask(on: 5)
+        store.completeTask(thuTask.id, on: thursday.dateString)
+        store.completeTask(onceTask.id, on: thursday.dateString)
+
+        store.updateStreak(for: thursday.dateString)
+
+        // Gap day (Tue) had a once task → not a free gap → streak is 1, not 2
+        XCTAssertEqual(store.streakData.currentStreak, 1)
+    }
+
+    func testUpdateStreak_gapContainsOnlyFreeOnce_noTask_extendsStreak() {
+        // Control: gap with NO once tasks (and no weekly tasks) → streak extends normally.
+        let monday   = makeDate(year: 2026, month: 3, day: 9)   // weekday 2
+        let thursday = makeDate(year: 2026, month: 3, day: 12)  // weekday 5
+
+        let monTask = addBlockingTask(on: 2)
+        store.completeTask(monTask.id, on: monday.dateString)
+        store.updateStreak(for: monday.dateString)
+        XCTAssertEqual(store.streakData.currentStreak, 1)
+
+        // Thursday task — Tue/Wed have no tasks at all
+        let thuTask = addBlockingTask(on: 5)
+        store.completeTask(thuTask.id, on: thursday.dateString)
+        store.updateStreak(for: thursday.dateString)
+
+        XCTAssertEqual(store.streakData.currentStreak, 2)
+    }
 }
