@@ -13,6 +13,13 @@
 			</array>
 		</dict>
 	</array>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>LaunchLogo</string>
+	</dict>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Lock In reads your step count to automatically complete step goal tasks.</string>
 <key>NSMotionUsageDescription</key>
