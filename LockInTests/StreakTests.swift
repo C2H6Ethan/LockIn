@@ -225,7 +225,7 @@ final class StreakTests: XCTestCase {
         store.streakData = StreakData(currentStreak: 5, longestStreak: 5, lastCompletedDate: lastCompleted.dateString)
         // Drain freeze so streak resets immediately (no offer prompt)
         store.streakFreezeCount = 0
-        store.streakFreezeWeekString = Date().isoWeekString
+        store.streakFreezeWeekString = today.isoWeekString
         addBlockingTask(on: 3) // Tuesday task, never completed
         store.checkAndUpdateStreak(today: today)
         XCTAssertEqual(store.streakData.currentStreak, 0)
@@ -238,7 +238,7 @@ final class StreakTests: XCTestCase {
         store.streakData = StreakData(currentStreak: 5, longestStreak: 5, lastCompletedDate: lastCompleted.dateString)
         // Drain freeze so streak resets immediately (no offer prompt)
         store.streakFreezeCount = 0
-        store.streakFreezeWeekString = Date().isoWeekString
+        store.streakFreezeWeekString = today.isoWeekString
         let task = Task(title: "Floss", activeDays: [3], blocksApps: false) // Tuesday, never completed
         store.addTask(task)
         store.checkAndUpdateStreak(today: today)

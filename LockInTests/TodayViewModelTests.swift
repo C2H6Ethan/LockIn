@@ -387,33 +387,25 @@ final class TodayViewModelTests: XCTestCase {
         XCTAssertEqual(sut.todayTasks[0].title, "Read")
     }
 
-    // MARK: - uncompleteTask
+    // MARK: - undoLastCompletion
 
-    func testUncompleteTask_removesFromCompletedTasks() {
+    func testUndoLastCompletion_reversesCompletion() {
         let todayWeekday = Calendar.current.component(.weekday, from: Date())
         store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
         sut.onAppear()
         sut.completeTask(sut.todayTasks[0])
+        XCTAssertTrue(sut.showUndoToast)
         XCTAssertEqual(sut.completedTasks.count, 1)
 
-        sut.uncompleteTask(sut.completedTasks[0])
+        sut.undoLastCompletion()
 
         XCTAssertTrue(sut.completedTasks.isEmpty)
-    }
-
-    func testUncompleteTask_taskReappearsInTodayTasks() {
-        let todayWeekday = Calendar.current.component(.weekday, from: Date())
-        store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
-        sut.onAppear()
-        sut.completeTask(sut.todayTasks[0])
-
-        sut.uncompleteTask(sut.completedTasks[0])
-
         XCTAssertEqual(sut.todayTasks.count, 1)
         XCTAssertEqual(sut.todayTasks[0].title, "Run")
+        XCTAssertFalse(sut.showUndoToast)
     }
 
-    func testUncompleteTask_removesFromCompletionLog() {
+    func testUndoLastCompletion_removesFromCompletionLog() {
         let todayWeekday = Calendar.current.component(.weekday, from: Date())
         let task = Task(title: "Run", activeDays: [todayWeekday])
         store.addTask(task)
@@ -421,68 +413,79 @@ final class TodayViewModelTests: XCTestCase {
         sut.completeTask(sut.todayTasks[0])
         XCTAssertTrue(store.completionLog[Date().dateString]?.contains(task.id) ?? false)
 
-        sut.uncompleteTask(sut.completedTasks[0])
+        sut.undoLastCompletion()
 
         XCTAssertFalse(store.completionLog[Date().dateString]?.contains(task.id) ?? false)
     }
 
-    func testUncompleteTask_triggersShieldUpdate() {
+    func testUndoLastCompletion_triggersShieldUpdate() {
         let todayWeekday = Calendar.current.component(.weekday, from: Date())
         store.addTask(Task(title: "Run", activeDays: [todayWeekday], blocksApps: true))
         sut.onAppear()
         sut.completeTask(sut.todayTasks[0])
         let callsBefore = mockApplier.removeCallCount + mockApplier.applyCallCount
 
-        sut.uncompleteTask(sut.completedTasks[0])
+        sut.undoLastCompletion()
 
         XCTAssertGreaterThan(mockApplier.removeCallCount + mockApplier.applyCallCount, callsBefore)
     }
 
-    func testUncompleteTask_blockingTask_allBlockingDoneBecomeFalse() {
+    func testUndoLastCompletion_blockingTask_allBlockingDoneBecomeFalse() {
         let todayWeekday = Calendar.current.component(.weekday, from: Date())
         store.addTask(Task(title: "Run", activeDays: [todayWeekday], blocksApps: true))
         sut.onAppear()
         sut.completeTask(sut.todayTasks[0])
         XCTAssertTrue(sut.allBlockingDone)
 
-        sut.uncompleteTask(sut.completedTasks[0])
+        sut.undoLastCompletion()
 
         XCTAssertFalse(sut.allBlockingDone)
     }
 
-    func testUncompleteTask_onlyRemovesMatchingTask() {
+    func testCompleteSecondTask_clearsPreviousUndo() {
         let todayWeekday = Calendar.current.component(.weekday, from: Date())
         store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
         store.addTask(Task(title: "Meditate", activeDays: [todayWeekday]))
         sut.onAppear()
+
         sut.completeTask(sut.todayTasks.first(where: { $0.title == "Run" })!)
         sut.completeTask(sut.todayTasks.first(where: { $0.title == "Meditate" })!)
-        XCTAssertEqual(sut.completedTasks.count, 2)
 
-        sut.uncompleteTask(sut.completedTasks.first(where: { $0.title == "Run" })!)
+        // Undo should only affect the last completed task (Meditate)
+        sut.undoLastCompletion()
 
         XCTAssertEqual(sut.completedTasks.count, 1)
-        XCTAssertEqual(sut.completedTasks[0].title, "Meditate")
+        XCTAssertEqual(sut.completedTasks[0].title, "Run")
         XCTAssertEqual(sut.todayTasks.count, 1)
-        XCTAssertEqual(sut.todayTasks[0].title, "Run")
+        XCTAssertEqual(sut.todayTasks[0].title, "Meditate")
     }
 
-    func testCompleteUncompleteComplete_worksCorrectly() {
+    func testUndoLastCompletion_noOp_whenNothingToUndo() {
+        sut.onAppear()
+        sut.undoLastCompletion()
+        // Should not crash
+        XCTAssertTrue(sut.todayTasks.isEmpty)
+    }
+
+    func testCompleteTask_showsUndoToast() {
         let todayWeekday = Calendar.current.component(.weekday, from: Date())
         store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
         sut.onAppear()
 
-        // First complete
         sut.completeTask(sut.todayTasks[0])
-        XCTAssertTrue(sut.todayTasks.isEmpty)
-        XCTAssertEqual(sut.completedTasks.count, 1)
 
-        // Uncomplete
-        sut.uncompleteTask(sut.completedTasks[0])
+        XCTAssertTrue(sut.showUndoToast)
+    }
+
+    func testUndoThenReComplete_worksCorrectly() {
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Run", activeDays: [todayWeekday]))
+        sut.onAppear()
+
+        sut.completeTask(sut.todayTasks[0])
+        sut.undoLastCompletion()
         XCTAssertEqual(sut.todayTasks.count, 1)
-        XCTAssertTrue(sut.completedTasks.isEmpty)
 
-        // Complete again
         sut.completeTask(sut.todayTasks[0])
         XCTAssertTrue(sut.todayTasks.isEmpty)
         XCTAssertEqual(sut.completedTasks.count, 1)

@@ -338,6 +338,12 @@ final class SharedStore {
     /// Also cleans up once tasks completed on a previous day.
     func checkAndUpdateStreak(today: Date = Date()) {
         let todayString = today.dateString
+        // Refresh freeze token using the injected date so tests stay deterministic.
+        let currentWeek = today.isoWeekString
+        if streakFreezeWeekString != currentWeek {
+            streakFreezeCount = 1
+            streakFreezeWeekString = currentWeek
+        }
         let completedOnceTaskIDs = tasks
             .filter { $0.isOnce }
             .filter { task in
@@ -385,7 +391,7 @@ final class SharedStore {
 
         guard missedDayCount > 0 else { return }
 
-        if missedDayCount == 1 && streakFreezeAvailable {
+        if missedDayCount == 1 && streakFreezeCount > 0 {
             pendingFreezeOffer = true
         } else {
             var data = streakData

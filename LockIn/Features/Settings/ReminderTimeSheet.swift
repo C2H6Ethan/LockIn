@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct ReminderTimeSheet: View {
 
@@ -6,6 +7,7 @@ struct ReminderTimeSheet: View {
 
     @State private var isEnabled: Bool
     @State private var pickerTime: Date
+    @State private var notificationsDenied = false
 
     init() {
         let stored = SharedStore.shared.dailyReminderTime
@@ -48,11 +50,19 @@ struct ReminderTimeSheet: View {
 
                 Spacer()
 
-                Button {
-                    SharedStore.shared.dailyReminderTime = isEnabled ? pickerTime : nil
-                    SchedulingService.shared.rescheduleReminderIfNeeded()
-                    dismiss()
-                } label: {
+                Button(action: {
+                    _Concurrency.Task {
+                        if isEnabled {
+                            let settings = await UNUserNotificationCenter.current().notificationSettings()
+                            if settings.authorizationStatus == .notDetermined {
+                                try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+                            }
+                        }
+                        SharedStore.shared.dailyReminderTime = isEnabled ? pickerTime : nil
+                        SchedulingService.shared.rescheduleReminderIfNeeded()
+                        dismiss()
+                    }
+                }, label: {
                     Text("Save")
                         .font(.system(.body, weight: .medium))
                         .foregroundStyle(DesignSystem.Colors.background)
@@ -60,7 +70,7 @@ struct ReminderTimeSheet: View {
                         .padding(.vertical, DesignSystem.Spacing.md)
                         .background(DesignSystem.Colors.accent)
                         .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md))
-                }
+                })
 
                 Button {
                     dismiss()

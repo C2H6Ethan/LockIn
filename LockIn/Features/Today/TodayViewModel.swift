@@ -15,6 +15,10 @@ final class TodayViewModel {
     private(set) var streakAnimationTrigger = 0
     private(set) var stepsToday: Int = 0
     private(set) var pendingFreezeOffer = false
+    private(set) var showUndoToast = false
+    private(set) var undoTaskID: UUID?
+    private var undoTask: TodayTask?
+    private var undoTimer: Timer?
 
     // MARK: - Computed
 
@@ -125,14 +129,10 @@ final class TodayViewModel {
         blocking.updateShieldsForCurrentHabitState()
     }
 
-    func uncompleteTask(_ task: TodayTask) {
-        store.uncompleteTask(task.id, on: task.scheduledDateString)
-        completedTasks.removeAll { $0.id == task.id }
-        blocking.updateShieldsForCurrentHabitState()
-        sync()
-    }
-
     func completeTask(_ task: TodayTask) {
+        // Clear any pending undo from a previous completion
+        clearUndo()
+
         let prevStreak = store.streakData.currentStreak
         // Log on the task's original scheduled date (past date for carryovers).
         store.completeTask(task.id, on: task.scheduledDateString)
@@ -147,6 +147,34 @@ final class TodayViewModel {
         if store.streakData.currentStreak > prevStreak {
             streakAnimationTrigger += 1
         }
+
+        // Offer brief undo window
+        undoTask = task
+        undoTaskID = task.id
+        showUndoToast = true
+        undoTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: false) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.clearUndo()
+            }
+        }
+    }
+
+    func undoLastCompletion() {
+        guard let task = undoTask else { return }
+        store.uncompleteTask(task.id, on: task.scheduledDateString)
+        completedTasks.removeAll { $0.id == task.id }
+        blocking.updateShieldsForCurrentHabitState()
+        WidgetCenter.shared.reloadAllTimelines()
+        sync()
+        clearUndo()
+    }
+
+    private func clearUndo() {
+        undoTimer?.invalidate()
+        undoTimer = nil
+        undoTask = nil
+        undoTaskID = nil
+        showUndoToast = false
     }
 
     // MARK: - Step goals

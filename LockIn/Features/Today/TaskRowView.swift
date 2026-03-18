@@ -6,7 +6,6 @@ struct TaskRowView: View {
     let onComplete: () -> Void
     var stepCount: Int? = nil   // non-nil only for step goal tasks
     var isCompleted: Bool = false
-    var onUncomplete: (() -> Void)? = nil
 
     @State private var hapticTrigger = false
 
@@ -26,15 +25,10 @@ struct TaskRowView: View {
                     .frame(width: 22, height: 22)
                     .padding(.top, 2)
             } else if isCompleted {
-                Button {
-                    onUncomplete?()
-                } label: {
-                    Circle()
-                        .fill(DesignSystem.Colors.accent)
-                        .frame(width: 22, height: 22)
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 2)
+                Circle()
+                    .fill(DesignSystem.Colors.accent)
+                    .frame(width: 22, height: 22)
+                    .padding(.top, 2)
             } else {
                 Button {
                     hapticTrigger.toggle()
@@ -90,4 +84,3 @@ struct TaskRowView: View {
         .opacity(isCompleted ? 0.45 : 1.0)
     }
 }
-    

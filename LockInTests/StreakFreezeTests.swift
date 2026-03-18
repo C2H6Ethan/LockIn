@@ -169,7 +169,7 @@ final class StreakFreezeTests: XCTestCase {
         store.addTask(Task(title: "Run", activeDays: [3], blocksApps: true))
         // Consume the freeze so none available
         store.streakFreezeCount = 0
-        store.streakFreezeWeekString = Date().isoWeekString
+        store.streakFreezeWeekString = wednesday.isoWeekString
 
         store.checkAndUpdateStreak(today: wednesday)
 

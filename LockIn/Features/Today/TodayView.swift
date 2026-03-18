@@ -1,5 +1,27 @@
 import SwiftUI
 
+/// Capsule outline that starts tracing from top-center (clockwise).
+private struct TopStartCapsule: Shape {
+    func path(in rect: CGRect) -> Path {
+        let r = rect.height / 2
+        var p = Path()
+        // Start at top center, go clockwise
+        p.move(to: CGPoint(x: rect.midX, y: 0))
+        // Top-right straight + right arc
+        p.addLine(to: CGPoint(x: rect.maxX - r, y: 0))
+        p.addArc(center: CGPoint(x: rect.maxX - r, y: r),
+                  radius: r, startAngle: .degrees(-90), endAngle: .degrees(90), clockwise: false)
+        // Bottom-right to bottom-left
+        p.addLine(to: CGPoint(x: r, y: rect.maxY))
+        // Left arc
+        p.addArc(center: CGPoint(x: r, y: r),
+                  radius: r, startAngle: .degrees(90), endAngle: .degrees(270), clockwise: false)
+        // Top-left back to top center
+        p.addLine(to: CGPoint(x: rect.midX, y: 0))
+        return p
+    }
+}
+
 // Animatable conformance is required by KeyframeAnimator.
 private struct StreakAnimValues: Animatable {
     var scale: Double = 1.0
@@ -21,6 +43,7 @@ struct TodayView: View {
     @State private var viewModel = TodayViewModel()
     // Local trigger so KeyframeAnimator sees a change after the view exists.
     @State private var burstTrigger = 0
+    @State private var undoProgress: CGFloat = 1.0
 
     var body: some View {
         ZStack {
@@ -34,6 +57,18 @@ struct TodayView: View {
                 }
             } else {
                 taskList
+            }
+        }
+        .animation(.easeOut(duration: 0.25), value: viewModel.showUndoToast)
+        .onChange(of: viewModel.showUndoToast) { _, showing in
+            if showing {
+                undoProgress = 1.0
+                withAnimation(.linear(duration: 4.0)) {
+                    undoProgress = 0.0
+                }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            } else {
+                undoProgress = 1.0
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -145,17 +180,19 @@ struct TodayView: View {
                 }
 
                 ForEach(viewModel.completedTasks) { task in
-                    TaskRowView(
-                        task: task,
-                        onComplete: {},
-                        stepCount: task.stepTarget != nil ? viewModel.stepsToday : nil,
-                        isCompleted: true,
-                        onUncomplete: {
-                            withAnimation(.easeOut(duration: 0.25)) {
-                                viewModel.uncompleteTask(task)
-                            }
+                    HStack {
+                        TaskRowView(
+                            task: task,
+                            onComplete: {},
+                            stepCount: task.stepTarget != nil ? viewModel.stepsToday : nil,
+                            isCompleted: true
+                        )
+
+                        if viewModel.showUndoToast && viewModel.undoTaskID == task.id {
+                            undoPill
+                                .transition(.scale.combined(with: .opacity))
                         }
-                    )
+                    }
                     .id("completed-\(task.id)")
                     .padding(.horizontal, DesignSystem.Spacing.lg)
                     .transition(.opacity)
@@ -184,6 +221,31 @@ struct TodayView: View {
             .font(.system(.title3, weight: .medium))
             .foregroundStyle(DesignSystem.Colors.primaryText)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var undoPill: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            withAnimation(.easeOut(duration: 0.25)) {
+                viewModel.undoLastCompletion()
+            }
+        } label: {
+            Text("Undo")
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundStyle(DesignSystem.Colors.accent)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.1))
+                )
+                .overlay(
+                    TopStartCapsule()
+                        .trim(from: 0, to: undoProgress)
+                        .stroke(DesignSystem.Colors.accent.opacity(0.4), lineWidth: 1.5)
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private var emptyState: some View {
