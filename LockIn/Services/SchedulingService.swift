@@ -8,25 +8,34 @@ final class SchedulingService {
 
     private let center = DeviceActivityCenter()
 
-    /// Starts the weekly DeviceActivity monitor (Mon 00:00 → Sun 23:59, repeating).
-    /// Safe to call on every launch — no-ops if already active.
-    func scheduleWeeklyMonitorIfNeeded() {
+    /// Starts a daily DeviceActivity monitor (00:00 → 23:59, repeating every day).
+    /// Fires `intervalDidStart` at midnight so the extension can reapply shields for the new day.
+    /// Migrates from the old weekly schedule on first call.
+    func scheduleDailyMonitorIfNeeded() {
         let defaults = UserDefaults(suiteName: Constants.AppGroup.id) ?? .standard
-        guard !defaults.bool(forKey: Keys.weeklyScheduleActive) else { return }
 
-        // Calendar weekday: 1=Sun, 2=Mon … 7=Sat
+        // Migrate: stop old weekly schedule if it was active
+        if defaults.bool(forKey: Keys.weeklyScheduleActive) {
+            center.stopMonitoring([DeviceActivityName(Constants.DeviceActivity.weeklySchedule)])
+            defaults.removeObject(forKey: Keys.weeklyScheduleActive)
+            defaults.removeObject(forKey: Keys.dailyScheduleActive)   // force re-register
+            defaults.synchronize()
+        }
+
+        guard !defaults.bool(forKey: Keys.dailyScheduleActive) else { return }
+
         let schedule = DeviceActivitySchedule(
-            intervalStart: DateComponents(hour: 0, minute: 0, weekday: 2),  // Mon 00:00
-            intervalEnd:   DateComponents(hour: 23, minute: 59, weekday: 1), // Sun 23:59
+            intervalStart: DateComponents(hour: 0, minute: 0),   // midnight
+            intervalEnd:   DateComponents(hour: 23, minute: 59), // end of day
             repeats: true
         )
 
         do {
             try center.startMonitoring(
-                DeviceActivityName(Constants.DeviceActivity.weeklySchedule),
+                DeviceActivityName(Constants.DeviceActivity.dailySchedule),
                 during: schedule
             )
-            defaults.set(true, forKey: Keys.weeklyScheduleActive)
+            defaults.set(true, forKey: Keys.dailyScheduleActive)
             defaults.synchronize()
         } catch {
             // Will retry on next launch
@@ -70,6 +79,7 @@ final class SchedulingService {
 
     private enum Keys {
         static let weeklyScheduleActive = "weeklyScheduleActive"
+        static let dailyScheduleActive  = "dailyScheduleActive"
     }
 }
 

@@ -6,7 +6,8 @@ enum Constants {
     }
 
     enum DeviceActivity {
-        static let weeklySchedule = "com.ethanbaumgartner.lockin.weekly"
+        static let weeklySchedule = "com.ethanbaumgartner.lockin.weekly"   // legacy, cleaned up on launch
+        static let dailySchedule  = "com.ethanbaumgartner.lockin.daily"
     }
 
     enum ShameMessages {

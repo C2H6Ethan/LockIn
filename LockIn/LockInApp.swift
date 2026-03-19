@@ -46,7 +46,7 @@ struct LockInApp: App {
                     if SharedStore.shared.hasCompletedOnboarding {
                         await requestFamilyControlsAuthorization()
                     }
-                    SchedulingService.shared.scheduleWeeklyMonitorIfNeeded()
+                    SchedulingService.shared.scheduleDailyMonitorIfNeeded()
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active,
