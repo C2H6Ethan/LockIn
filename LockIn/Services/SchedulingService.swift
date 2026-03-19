@@ -9,19 +9,10 @@ final class SchedulingService {
     private let center = DeviceActivityCenter()
 
     /// Starts a daily DeviceActivity monitor (00:00 → 23:59, repeating every day).
-    /// Fires `intervalDidStart` at midnight so the extension can reapply shields for the new day.
-    /// Migrates from the old weekly schedule on first call.
+    /// Fires `intervalDidStart` at midnight so the extension reapplies shields for the new day.
+    /// Must only be called after FamilyControls authorization is granted.
     func scheduleDailyMonitorIfNeeded() {
         let defaults = UserDefaults(suiteName: Constants.AppGroup.id) ?? .standard
-
-        // Migrate: stop old weekly schedule if it was active
-        if defaults.bool(forKey: Keys.weeklyScheduleActive) {
-            center.stopMonitoring([DeviceActivityName(Constants.DeviceActivity.weeklySchedule)])
-            defaults.removeObject(forKey: Keys.weeklyScheduleActive)
-            defaults.removeObject(forKey: Keys.dailyScheduleActive)   // force re-register
-            defaults.synchronize()
-        }
-
         guard !defaults.bool(forKey: Keys.dailyScheduleActive) else { return }
 
         let schedule = DeviceActivitySchedule(
@@ -38,8 +29,52 @@ final class SchedulingService {
             defaults.set(true, forKey: Keys.dailyScheduleActive)
             defaults.synchronize()
         } catch {
-            // Will retry on next launch
+            // Authorization not yet granted — will retry on next launch once granted
         }
+    }
+
+    /// Registers one DeviceActivity schedule per unique blockingStartTime across all tasks.
+    /// Fires `intervalDidStart` at each start time so the extension applies shields without
+    /// requiring the user to open the app.
+    /// Safe to call on every foreground — stops old start-time monitors and re-registers fresh.
+    /// Must only be called after FamilyControls authorization is granted.
+    func scheduleBlockingStartTimeMonitors(for tasks: [Task]) {
+        let defaults = UserDefaults(suiteName: Constants.AppGroup.id) ?? .standard
+
+        // Stop previously registered start-time monitors
+        let previousMinutes = defaults.array(forKey: Keys.activeStartTimeMinutes) as? [Int] ?? []
+        let previousNames = previousMinutes.map {
+            DeviceActivityName("\(Constants.DeviceActivity.startTimePrefix).\($0)")
+        }
+        if !previousNames.isEmpty {
+            center.stopMonitoring(previousNames)
+        }
+
+        // Collect unique start times (in minutes since midnight) from all tasks
+        let uniqueMinutes = Set(tasks.compactMap { task -> Int? in
+            guard let comps = task.blockingStartTime,
+                  let hour = comps.hour, let minute = comps.minute else { return nil }
+            return hour * 60 + minute
+        })
+
+        var registeredMinutes: [Int] = []
+        for totalMinutes in uniqueMinutes {
+            let schedule = DeviceActivitySchedule(
+                intervalStart: DateComponents(hour: totalMinutes / 60, minute: totalMinutes % 60),
+                intervalEnd:   DateComponents(hour: 23, minute: 59),
+                repeats: true
+            )
+            let name = DeviceActivityName("\(Constants.DeviceActivity.startTimePrefix).\(totalMinutes)")
+            do {
+                try center.startMonitoring(name, during: schedule)
+                registeredMinutes.append(totalMinutes)
+            } catch {
+                // Authorization not yet granted — will retry on next foreground once granted
+            }
+        }
+
+        defaults.set(registeredMinutes, forKey: Keys.activeStartTimeMinutes)
+        defaults.synchronize()
     }
 
     /// Cancels any pending daily reminder, then re-schedules it if needed.
@@ -78,8 +113,8 @@ final class SchedulingService {
     }
 
     private enum Keys {
-        static let weeklyScheduleActive = "weeklyScheduleActive"
-        static let dailyScheduleActive  = "dailyScheduleActive"
+        static let dailyScheduleActive    = "dailyScheduleActive"
+        static let activeStartTimeMinutes = "activeStartTimeMinutes"
     }
 }
 

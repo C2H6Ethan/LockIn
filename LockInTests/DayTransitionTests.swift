@@ -32,6 +32,15 @@ final class DayTransitionTests: XCTestCase {
         Calendar.current.component(.weekday, from: Date())
     }
 
+    /// A start time 60 minutes from now. Returns nil when running after 22:59.
+    private func futureStartTime() -> DateComponents? {
+        let comps = Calendar.current.dateComponents([.hour, .minute], from: Date())
+        let nowMins = (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
+        let futureMins = nowMins + 60
+        guard futureMins < 1440 else { return nil }
+        return DateComponents(hour: futureMins / 60, minute: futureMins % 60)
+    }
+
     private var yesterdayWeekday: Int {
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
         return Calendar.current.component(.weekday, from: yesterday)
@@ -43,17 +52,39 @@ final class DayTransitionTests: XCTestCase {
 
     // MARK: - Day transition: incomplete tasks on new day require shields
 
-    func testNewDay_incompleteTasks_shieldsApplied() {
-        // Task scheduled for today, not completed
+    func testNewDay_incompleteTasks_incompleteTasksExist() {
+        // Task scheduled for today, not completed — verifies incompleteBlockingTasks returns it
         let task = Task(title: "Gym", activeDays: [todayWeekday])
         store.addTask(task)
 
-        // Calling updateShields (as the daily monitor does at midnight) should apply shields
-        // We can't test with real FamilyActivitySelection tokens in unit tests,
-        // but we CAN verify the logic: incomplete blocking tasks exist
         let incomplete = store.incompleteBlockingTasks
         XCTAssertEqual(incomplete.count, 1)
         XCTAssertEqual(incomplete.first?.title, "Gym")
+    }
+
+    func testNewDay_incompleteTasks_updateShieldsRemovesWhenNoAppsConfigured() {
+        // Extension calls updateShieldsForCurrentHabitState at midnight.
+        // Without app tokens selected, it should remove (can't shield nothing) — not no-op.
+        let task = Task(title: "Gym", activeDays: [todayWeekday])
+        store.addTask(task)
+
+        sut.updateShieldsForCurrentHabitState()
+
+        XCTAssertEqual(mockApplier.removeCallCount, 1, "Should call remove (no apps selected)")
+        XCTAssertEqual(mockApplier.applyCallCount, 0)
+    }
+
+    func testMidnight_taskWithFutureBlockingStartTime_notInIncompleteBlockingTasks() {
+        // At midnight (now), a task with blockingStartTime=09:00 should NOT appear in
+        // incompleteBlockingTasks — shields should not activate at midnight for that task.
+        // They'll activate at 09:00 via the start-time DeviceActivity schedule.
+        guard let futureStart = futureStartTime() else { return }
+        let task = Task(title: "Gym", activeDays: [todayWeekday], blockingStartTime: futureStart)
+        store.addTask(task)
+
+        let incomplete = store.incompleteBlockingTasks
+        XCTAssertTrue(incomplete.isEmpty,
+                      "Task with future blockingStartTime should not block at midnight")
     }
 
     func testNewDay_allTasksCompleteYesterday_todayTasksIncomplete() {

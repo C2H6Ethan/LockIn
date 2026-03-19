@@ -8,11 +8,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
 
-        let validNames: Set<String> = [
-            Constants.DeviceActivity.dailySchedule,
-            Constants.DeviceActivity.weeklySchedule   // handle legacy until migrated
-        ]
-        guard validNames.contains(activity.rawValue) else { return }
+        let isDailySchedule = activity.rawValue == Constants.DeviceActivity.dailySchedule
+        let isStartTimeSchedule = activity.rawValue.hasPrefix(Constants.DeviceActivity.startTimePrefix)
+        guard isDailySchedule || isStartTimeSchedule else { return }
 
         applyOrRemoveShields()
     }

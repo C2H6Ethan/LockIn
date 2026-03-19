@@ -45,14 +45,17 @@ struct LockInApp: App {
                     // New users get the prompt from the Screen Time explainer step.
                     if SharedStore.shared.hasCompletedOnboarding {
                         await requestFamilyControlsAuthorization()
+                        // Register monitors only after authorization — startMonitoring throws if called without it.
+                        SchedulingService.shared.scheduleDailyMonitorIfNeeded()
+                        SchedulingService.shared.scheduleBlockingStartTimeMonitors(for: SharedStore.shared.tasks)
                     }
-                    SchedulingService.shared.scheduleDailyMonitorIfNeeded()
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active,
                        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
                         BlockingService.shared.updateShieldsForCurrentHabitState()
                         SchedulingService.shared.rescheduleReminderIfNeeded()
+                        SchedulingService.shared.scheduleBlockingStartTimeMonitors(for: SharedStore.shared.tasks)
                     }
                 }
                 .fullScreenCover(isPresented: $showOnboarding) {
