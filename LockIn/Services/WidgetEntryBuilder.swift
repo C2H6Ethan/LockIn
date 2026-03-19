@@ -15,7 +15,8 @@ struct LockInWidgetEntry: TimelineEntry {
     static func build(store: SharedStore = SharedStore(suiteName: Constants.AppGroup.id)) -> LockInWidgetEntry {
         let incomplete = store.buildTodayTasks()
         let todayString = Date().dateString
-        let completedToday = store.completionLog[todayString]?.count ?? 0
+        let validTaskIDs = Set(store.tasks.map { $0.id })
+        let completedToday = store.completionLog[todayString]?.filter { validTaskIDs.contains($0) }.count ?? 0
         let total = incomplete.count + completedToday
 
         return LockInWidgetEntry(

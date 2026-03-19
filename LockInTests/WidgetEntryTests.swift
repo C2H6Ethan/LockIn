@@ -99,6 +99,41 @@ final class WidgetEntryTests: XCTestCase {
         XCTAssertTrue(entry.taskTitles.isEmpty)
     }
 
+    // MARK: - ghost IDs (completed-then-deleted tasks)
+
+    func testBuildEntry_deletedTaskCompletionLog_notCountedInTotal() {
+        // Complete a task then delete it — its ID stays in completionLog but should not inflate total
+        let ghost = addTask(on: todayWeekday, title: "Ghost Task")
+        store.completeTask(ghost.id, on: Date().dateString)
+        store.removeTask(id: ghost.id)
+
+        let live = addTask(on: todayWeekday, title: "Live Task")
+        _ = live  // incomplete
+
+        let entry = LockInWidgetEntry.build(store: store)
+
+        XCTAssertEqual(entry.totalCount, 1, "Deleted task's completion should not count toward total")
+        XCTAssertEqual(entry.incompleteCount, 1)
+        XCTAssertFalse(entry.allDone)
+    }
+
+    func testBuildEntry_multipleGhostIDs_noneCountTowardTotal() {
+        // Several tasks completed and deleted — total should reflect only live tasks
+        for i in 1...3 {
+            let ghost = addTask(on: todayWeekday, title: "Ghost \(i)")
+            store.completeTask(ghost.id, on: Date().dateString)
+            store.removeTask(id: ghost.id)
+        }
+        let live = addTask(on: todayWeekday, title: "Live Task")
+        store.completeTask(live.id, on: Date().dateString)
+
+        let entry = LockInWidgetEntry.build(store: store)
+
+        XCTAssertEqual(entry.totalCount, 1)
+        XCTAssertEqual(entry.incompleteCount, 0)
+        XCTAssertTrue(entry.allDone)
+    }
+
     // MARK: - streak
 
     func testBuildEntry_streak_reflectsStoreValue() {
