@@ -62,6 +62,7 @@ final class BlockingService {
     func temporaryUnblock(duration: TimeInterval = Constants.Bypass.defaultWindowDuration) {
         store.unblockExpiresAt = Date().addingTimeInterval(duration)
         applier.remove()
+        SchedulingService.shared.scheduleBypassExpiry(duration: duration)
 
         unblockTask?.cancel()
         unblockTask = _Concurrency.Task { [weak self] in

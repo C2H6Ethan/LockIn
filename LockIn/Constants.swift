@@ -8,6 +8,7 @@ enum Constants {
     enum DeviceActivity {
         static let dailySchedule   = "com.ethanbaumgartner.lockin.daily"
         static let startTimePrefix = "com.ethanbaumgartner.lockin.start"   // + ".{minutesSinceMidnight}"
+        static let bypassExpiry    = "com.ethanbaumgartner.lockin.bypass-expiry"
     }
 
     enum ShameMessages {

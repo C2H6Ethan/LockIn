@@ -15,6 +15,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         applyOrRemoveShields()
     }
 
+    /// Fires when the bypass window expires — re-applies shields out-of-process so the
+    /// main app does not need to be open for re-blocking to take effect.
+    override func intervalDidEnd(for activity: DeviceActivityName) {
+        super.intervalDidEnd(for: activity)
+        guard activity.rawValue == Constants.DeviceActivity.bypassExpiry else { return }
+        applyOrRemoveShields()
+    }
+
     /// Reads current habit state from the App Group and applies/removes shields.
     /// Called at midnight (daily interval start) so shields reflect the new day's tasks.
     private func applyOrRemoveShields() {

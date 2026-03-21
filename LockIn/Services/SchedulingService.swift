@@ -77,6 +77,30 @@ final class SchedulingService {
         defaults.synchronize()
     }
 
+    /// Schedules a one-shot DeviceActivity monitor that expires when the bypass window closes.
+    /// The DeviceActivityMonitor extension re-applies shields in `intervalDidEnd`, even if
+    /// LockIn is suspended.
+    func scheduleBypassExpiry(duration: TimeInterval) {
+        center.stopMonitoring([DeviceActivityName(Constants.DeviceActivity.bypassExpiry)])
+
+        let now = Date()
+        let expiry = now.addingTimeInterval(duration)
+        let cal = Calendar.current
+        let startComps = cal.dateComponents([.hour, .minute, .second], from: now)
+        let endComps   = cal.dateComponents([.hour, .minute, .second], from: expiry)
+
+        let schedule = DeviceActivitySchedule(
+            intervalStart: startComps,
+            intervalEnd:   endComps,
+            repeats: false
+        )
+
+        try? center.startMonitoring(
+            DeviceActivityName(Constants.DeviceActivity.bypassExpiry),
+            during: schedule
+        )
+    }
+
     /// Cancels any pending daily reminder, then re-schedules it if needed.
     /// Call on every `.active` scene transition and after each task completion.
     /// Always schedules in the future — if reminder time has already passed today, schedules tomorrow.
