@@ -1,6 +1,7 @@
 import Foundation
 import FamilyControls
 import ManagedSettings
+import UserNotifications
 
 // MARK: - Protocol (enables test injection)
 
@@ -32,7 +33,6 @@ final class BlockingService {
 
     private let store: SharedStore
     private let applier: any ShieldApplying
-    private var unblockTask: _Concurrency.Task<Void, Never>?
 
     init(store: SharedStore = .shared, applier: any ShieldApplying = ManagedSettingsShieldApplier()) {
         self.store = store
@@ -42,9 +42,12 @@ final class BlockingService {
     // MARK: - Public API
 
     /// Apply or remove shields based on current habit completion + app selection state.
-    /// No-op if a temporary unblock window is still active.
+    /// If a bypass window is active, shields stay removed until it expires.
     func updateShieldsForCurrentHabitState() {
+        // Bypass still active — keep shields removed
         if let expires = store.unblockExpiresAt, expires > Date() { return }
+
+        // Clean up expired bypass
         store.unblockExpiresAt = nil
 
         let blocking = store.incompleteBlockingTasks
@@ -58,20 +61,25 @@ final class BlockingService {
         }
     }
 
-    /// Remove shields for `duration` seconds, then re-apply based on habit state.
+    /// Start a bypass window: removes shields so the user can use blocked apps.
+    /// Re-blocking happens via:
+    /// 1. DeviceActivityMonitor `intervalDidStart` at expiry (out-of-process, reliable)
+    /// 2. App foreground check (`scenePhase → .active → updateShields`)
+    /// 3. "Break's over" notification tap opens app → re-applies shields
     func temporaryUnblock(duration: TimeInterval = Constants.Bypass.defaultWindowDuration) {
         store.unblockExpiresAt = Date().addingTimeInterval(duration)
         applier.remove()
+
+        // Schedule out-of-process re-block via DeviceActivityMonitor
         SchedulingService.shared.scheduleBypassExpiry(duration: duration)
 
-        unblockTask?.cancel()
-        unblockTask = _Concurrency.Task { [weak self] in
-            try? await _Concurrency.Task.sleep(for: .seconds(duration))
-            guard let self, !_Concurrency.Task.isCancelled else { return }
-            await MainActor.run {
-                self.store.unblockExpiresAt = nil
-                self.updateShieldsForCurrentHabitState()
-            }
-        }
+        // Notification reminder when break ends — tapping opens app → re-applies shields
+        let content = UNMutableNotificationContent()
+        content.title = "Break's over"
+        content.body = "Your apps are blocked again. Time to lock in."
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: duration, repeats: false)
+        let request = UNNotificationRequest(identifier: "bypass-expiry", content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
     }
 }

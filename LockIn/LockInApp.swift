@@ -13,6 +13,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     /// Handles tapping a delivered notification. Opens the deep link URL in the app.
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        if response.notification.request.identifier == "bypass-expiry" {
+            await MainActor.run {
+                SharedStore.shared.unblockExpiresAt = nil
+                BlockingService.shared.updateShieldsForCurrentHabitState()
+            }
+            return
+        }
         guard
             let urlString = response.notification.request.content.userInfo["url"] as? String,
             let url = URL(string: urlString)
@@ -22,6 +29,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     /// Show notification banner even when app is in foreground (e.g. on Today screen).
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        if notification.request.identifier == "bypass-expiry" {
+            await MainActor.run {
+                SharedStore.shared.unblockExpiresAt = nil
+                BlockingService.shared.updateShieldsForCurrentHabitState()
+            }
+        }
         return [.banner, .sound]
     }
 }

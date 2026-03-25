@@ -63,7 +63,7 @@ enum Constants {
         static let deepLink = "lockin://bypass"
         static let stepsPerLevel = 100
         static let maxSteps = 1000
-        static let accessWindowMinutes = 5
+        static let accessWindowMinutes = 15
     }
 
     enum DailyReminder {

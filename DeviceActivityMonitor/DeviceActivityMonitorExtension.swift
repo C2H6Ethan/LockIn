@@ -8,6 +8,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
 
+        if activity.rawValue == Constants.DeviceActivity.bypassExpiry {
+            // Bypass window expired — clear it and re-apply shields.
+            let store = SharedStore(suiteName: Constants.AppGroup.id)
+            store.unblockExpiresAt = nil
+            applyOrRemoveShields()
+            return
+        }
+
         let isDailySchedule = activity.rawValue == Constants.DeviceActivity.dailySchedule
         let isStartTimeSchedule = activity.rawValue.hasPrefix(Constants.DeviceActivity.startTimePrefix)
         guard isDailySchedule || isStartTimeSchedule else { return }
@@ -15,13 +23,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         applyOrRemoveShields()
     }
 
-    /// Fires when the bypass window expires — re-applies shields out-of-process so the
-    /// main app does not need to be open for re-blocking to take effect.
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
+        // Fallback in case intervalDidStart didn't fire for bypass expiry.
         guard activity.rawValue == Constants.DeviceActivity.bypassExpiry else { return }
-        // Clear the unblock window so applyOrRemoveShields doesn't bail out.
-        // The in-process timer in BlockingService may not have fired if the app was killed.
         let store = SharedStore(suiteName: Constants.AppGroup.id)
         store.unblockExpiresAt = nil
         applyOrRemoveShields()

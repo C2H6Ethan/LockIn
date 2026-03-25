@@ -102,17 +102,22 @@ struct StepsChallengeView: View {
     private var completionView: some View {
         VStack(spacing: DesignSystem.Spacing.lg) {
             Spacer()
-            DesignSystem.Typography.title("Done.")
-            DesignSystem.Typography.secondary("Apps unblocked. Close this to continue.")
+            DesignSystem.Typography.title("You gave in.")
+            DesignSystem.Typography.secondary("Blocked again at \(expiryTimeString).")
                 .multilineTextAlignment(.center)
             Spacer()
+            Button("Got it") { dismiss() }
+                .font(.system(.body, weight: .regular))
+                .foregroundStyle(DesignSystem.Colors.accent)
+                .padding(.bottom, DesignSystem.Spacing.xl)
         }
-        .onAppear {
-            _Concurrency.Task {
-                try? await _Concurrency.Task.sleep(for: .seconds(1.5))
-                dismiss()
-            }
-        }
+    }
+
+    private var expiryTimeString: String {
+        let expiry = Date().addingTimeInterval(TimeInterval(Constants.Stepping.accessWindowMinutes * 60))
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter.string(from: expiry)
     }
 
     // MARK: - Helpers

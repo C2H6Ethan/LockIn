@@ -83,11 +83,13 @@ final class SchedulingService {
     func scheduleBypassExpiry(duration: TimeInterval) {
         center.stopMonitoring([DeviceActivityName(Constants.DeviceActivity.bypassExpiry)])
 
-        let now = Date()
-        let expiry = now.addingTimeInterval(duration)
         let cal = Calendar.current
-        let startComps = cal.dateComponents([.hour, .minute, .second], from: now)
-        let endComps   = cal.dateComponents([.hour, .minute, .second], from: expiry)
+        // Schedule interval to START at expiry time. intervalDidStart re-applies shields.
+        // Interval must be ≥ 15 min (Apple enforced minimum), so end = start + 15 min.
+        let expiry = Date().addingTimeInterval(duration)
+        let expiryEnd = expiry.addingTimeInterval(15 * 60)
+        let startComps = cal.dateComponents([.hour, .minute, .second], from: expiry)
+        let endComps   = cal.dateComponents([.hour, .minute, .second], from: expiryEnd)
 
         let schedule = DeviceActivitySchedule(
             intervalStart: startComps,

@@ -70,6 +70,7 @@ final class BlockingServiceTests: XCTestCase {
 
         sut.updateShieldsForCurrentHabitState()
 
+        // Shields stay removed during bypass — no-op
         XCTAssertEqual(mockApplier.removeCallCount, 0)
         XCTAssertEqual(mockApplier.applyCallCount, 0)
     }
@@ -139,6 +140,7 @@ final class BlockingServiceTests: XCTestCase {
 
         sut.updateShieldsForCurrentHabitState()
 
+        // No-op during active bypass
         XCTAssertEqual(mockApplier.applyCallCount, 0)
         XCTAssertEqual(mockApplier.removeCallCount, 0)
     }
