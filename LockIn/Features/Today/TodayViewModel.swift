@@ -8,12 +8,12 @@ final class TodayViewModel {
     // MARK: - State
 
     var todayTasks: [TodayTask] = []
-    private(set) var completedTasks: [TodayTask] = []
+    var completedTasks: [TodayTask] = []
     var streak: Int = 0
     var showingAddTask = false
-    private(set) var hasCompletedTaskToday = false
+    var hasCompletedTaskToday = false
     private(set) var streakAnimationTrigger = 0
-    private(set) var stepsToday: Int = 0
+    var stepsToday: Int = 0
     private(set) var pendingFreezeOffer = false
     private(set) var showUndoToast = false
     private(set) var undoTaskID: UUID?

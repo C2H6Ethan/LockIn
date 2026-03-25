@@ -111,8 +111,12 @@ struct OnboardingView: View {
 
             primaryButton("Got it. Let's set it up.") {
                 _Concurrency.Task {
-                    try? await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-                    advance()
+                    do {
+                        try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+                        advance()
+                    } catch {
+                        // User declined — stay on this step
+                    }
                 }
             }
         }

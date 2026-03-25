@@ -64,6 +64,39 @@ struct LockInApp: App {
         }
     }
 
+    // MARK: - Screenshot mock data
+
+    private func injectScreenshotDataIfNeeded() {
+        #if DEBUG
+        // TEMPORARY: always inject mock data for screenshots. Revert this.
+        let store = SharedStore.shared
+        // Clear existing
+        for task in store.tasks { store.removeTask(id: task.id) }
+
+        let today = Date()
+        let weekday = Calendar.current.component(.weekday, from: today)
+        let todayString = today.dateString
+
+        let t1 = Task(title: "Morning workout", activeDays: [weekday], blocksApps: true, createdAt: today)
+        let t2 = Task(title: "Read 20 pages", activeDays: [weekday], blocksApps: true, createdAt: today)
+        let t3 = Task(title: "Go for a walk", activeDays: [weekday], blocksApps: true, createdAt: today, stepTarget: 7500)
+        let t4 = Task(title: "Do laundry", activeDays: [weekday], blocksApps: false, createdAt: today)
+
+        store.addTask(t1)
+        store.addTask(t2)
+        store.addTask(t3)
+        store.addTask(t4)
+
+        store.completeTask(t1.id, on: todayString)
+        store.completeTask(t2.id, on: todayString)
+
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
+        store.streakData = StreakData(currentStreak: 14, longestStreak: 14,
+                                      lastCompletedDate: yesterday.dateString)
+        store.hasCompletedOnboarding = true
+        #endif
+    }
+
     // MARK: - Private
 
     private func requestFamilyControlsAuthorization() async {

@@ -118,6 +118,7 @@ struct SettingsView: View {
             ReminderTimeSheet()
         }
         .onAppear {
+            pickerSelection = SharedStore.shared.selectedApps
             viewModel.onAppear()
         }
     }

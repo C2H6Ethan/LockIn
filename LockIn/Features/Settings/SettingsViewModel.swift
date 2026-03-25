@@ -132,6 +132,7 @@ final class SettingsViewModel {
             }
             return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
         }
+        selectedAppsCount = store.selectedApps.applicationTokens.count
         isLocked = store.isLocked
         lockExpiresAt = store.lockExpiresAt
         reminderSummary = Self.formatReminderTime(store.dailyReminderTime)

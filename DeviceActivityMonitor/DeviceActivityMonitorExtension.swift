@@ -20,6 +20,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
         guard activity.rawValue == Constants.DeviceActivity.bypassExpiry else { return }
+        // Clear the unblock window so applyOrRemoveShields doesn't bail out.
+        // The in-process timer in BlockingService may not have fired if the app was killed.
+        let store = SharedStore(suiteName: Constants.AppGroup.id)
+        store.unblockExpiresAt = nil
         applyOrRemoveShields()
     }
 

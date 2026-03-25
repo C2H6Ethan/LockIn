@@ -45,6 +45,7 @@ struct TodayView: View {
     // Local trigger so KeyframeAnimator sees a change after the view exists.
     @State private var burstTrigger = 0
     @State private var undoProgress: CGFloat = 1.0
+    private var isMock = false
 
     var body: some View {
         ZStack {
@@ -87,9 +88,9 @@ struct TodayView: View {
         .safeAreaInset(edge: .top) {
             streakBanner
         }
-        .onAppear { viewModel.onAppear() }
+        .onAppear { if !isMock { viewModel.onAppear() } }
         .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active { viewModel.onAppear() }
+            if newPhase == .active && !isMock { viewModel.onAppear() }
         }
         // Streak incremented while the list is still visible (non-final task completion):
         // fire haptic + burst immediately since the banner is already on screen.
@@ -266,4 +267,55 @@ struct TodayView: View {
     NavigationStack {
         TodayView()
     }
+}
+
+// MARK: - Screenshot preview with mock data
+
+#Preview("App Store Screenshots") {
+    NavigationStack {
+        TodayView(mock: .appStoreScreenshot)
+    }
+}
+
+extension TodayView {
+    /// Initializer that injects mock data for screenshots — never shipped.
+    init(mock: MockScreenshotData) {
+        let vm = TodayViewModel()
+        vm.todayTasks = mock.todayTasks
+        vm.completedTasks = mock.completedTasks
+        vm.streak = mock.streak
+        vm.stepsToday = mock.stepsToday
+        vm.hasCompletedTaskToday = true
+        _viewModel = State(initialValue: vm)
+        isMock = true
+    }
+}
+
+struct MockScreenshotData {
+    let todayTasks: [TodayTask]
+    let completedTasks: [TodayTask]
+    let streak: Int
+    let stepsToday: Int
+
+    static let appStoreScreenshot = MockScreenshotData(
+        todayTasks: [
+            TodayTask(id: UUID(), title: "Go for a walk", blocksApps: true,
+                      isCarryOver: false, originalDay: nil,
+                      scheduledDateString: Date().dateString, isOnce: false,
+                      stepTarget: 7500),
+            TodayTask(id: UUID(), title: "Do laundry", blocksApps: false,
+                      isCarryOver: false, originalDay: nil,
+                      scheduledDateString: Date().dateString),
+        ],
+        completedTasks: [
+            TodayTask(id: UUID(), title: "Morning workout", blocksApps: true,
+                      isCarryOver: false, originalDay: nil,
+                      scheduledDateString: Date().dateString),
+            TodayTask(id: UUID(), title: "Read 20 pages", blocksApps: true,
+                      isCarryOver: false, originalDay: nil,
+                      scheduledDateString: Date().dateString),
+        ],
+        streak: 14,
+        stepsToday: 2847
+    )
 }

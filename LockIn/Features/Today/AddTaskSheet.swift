@@ -18,6 +18,7 @@ struct AddTaskSheet: View {
     @State private var startTimePicker = Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var hasStepGoal = false
     @State private var stepTarget: Int = 5_000
+    @State private var isSubmitting = false
     @FocusState private var titleFocused: Bool
 
     private let stepOptions: [(value: Int, label: String)] = [
@@ -230,6 +231,8 @@ struct AddTaskSheet: View {
 
                 // Add button
                 Button {
+                    guard !isSubmitting else { return }
+                    isSubmitting = true
                     let recurrence: TaskRecurrence = repeats
                         ? .weekly(days: selectedDays)
                         : .once(startDate: onceStartDate)
@@ -250,7 +253,7 @@ struct AddTaskSheet: View {
                         .background(canAdd ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText.opacity(0.2))
                         .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md))
                 }
-                .disabled(!canAdd)
+                .disabled(!canAdd || isSubmitting)
                 .padding(.bottom, DesignSystem.Spacing.lg)
             }
             .padding(.horizontal, DesignSystem.Spacing.lg)
