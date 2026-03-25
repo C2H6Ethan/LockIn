@@ -23,8 +23,10 @@ final class StreakTests: XCTestCase {
         return Calendar.current.date(from: c)!
     }
 
-    private func addBlockingTask(on weekday: Int) -> Task {
-        let task = Task(title: "Run", activeDays: [weekday], blocksApps: true)
+    @discardableResult
+    private func addBlockingTask(on weekday: Int, createdAt: Date? = nil) -> Task {
+        let task = Task(title: "Run", activeDays: [weekday], blocksApps: true,
+                        createdAt: createdAt ?? Date())
         store.addTask(task)
         return task
     }
@@ -70,7 +72,7 @@ final class StreakTests: XCTestCase {
 
         // Day 2: Mar 11 (Wednesday, weekday 4) — Tuesday (weekday 3) has a blocking task → real gap
         let day2 = makeDate(year: 2026, month: 3, day: 11)
-        let _ = addBlockingTask(on: 3) // Tuesday blocking task, never completed
+        let _ = addBlockingTask(on: 3, createdAt: day1) // Tuesday blocking task, never completed
         let day2Task = addBlockingTask(on: 4)
         store.completeTask(day2Task.id, on: day2.dateString)
         store.updateStreak(for: day2.dateString)
@@ -182,14 +184,16 @@ final class StreakTests: XCTestCase {
         store.updateStreak(for: day2.dateString)
         XCTAssertEqual(store.streakData.longestStreak, 2)
 
-        // Gap → streak resets but longestStreak stays
+        // Gap → streak resets (via checkAndUpdateStreak, which is how it works in production)
+        // but longestStreak stays.
         let day3 = makeDate(year: 2026, month: 3, day: 12) // skipped Mar 11
-        let _ = addBlockingTask(on: 4) // Wed (Mar 11) blocking task, never completed → real gap
-        let t3 = addBlockingTask(on: 5)
-        store.completeTask(t3.id, on: day3.dateString)
-        store.updateStreak(for: day3.dateString)
+        let _ = addBlockingTask(on: 4, createdAt: day1) // Wed (Mar 11) blocking task, never completed → real gap
+        // Drain freeze so the reset fires immediately (no freeze offer).
+        store.streakFreezeCount = 0
+        store.streakFreezeWeekString = day3.isoWeekString
+        store.checkAndUpdateStreak(today: day3)
 
-        XCTAssertEqual(store.streakData.currentStreak, 1)
+        XCTAssertEqual(store.streakData.currentStreak, 0)
         XCTAssertEqual(store.streakData.longestStreak, 2)
     }
 

@@ -256,7 +256,41 @@ final class SharedStore {
         guard let index = tasks.firstIndex(where: { $0.id == task.id }) else { return }
         tasks[index] = task
         saveTasks()
+        reconcileStreakAfterEdit()
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// After a task edit, check if the streak's lastCompletedDate is still valid.
+    /// If the day now has incomplete tasks, roll back. If a previously incomplete
+    /// day is now complete (task moved away), re-count it.
+    private func reconcileStreakAfterEdit() {
+        guard let lastString = streakData.lastCompletedDate,
+              let lastDate = Date.from(dateString: lastString) else { return }
+
+        // Check if lastCompletedDate still has all tasks done
+        let remaining = buildTodayTasks(on: lastDate)
+        if !remaining.isEmpty {
+            // Day is no longer complete — roll back
+            var data = streakData
+            data.currentStreak = max(0, data.currentStreak - 1)
+            if data.currentStreak == 0 {
+                data.lastCompletedDate = nil
+            } else {
+                let prev = Calendar.current.date(byAdding: .day, value: -1, to: lastDate)!
+                data.lastCompletedDate = prev.dateString
+            }
+            streakData = data
+            return
+        }
+
+        // Check if the next day is now complete (task was moved away, making it done)
+        let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: lastDate)!
+        let nextString = nextDay.dateString
+        guard let nextCompletions = completionLog[nextString], !nextCompletions.isEmpty else { return }
+        let nextRemaining = buildTodayTasks(on: nextDay)
+        if nextRemaining.isEmpty {
+            updateStreak(for: nextString)
+        }
     }
 
     // MARK: - Completion mutations
@@ -271,16 +305,15 @@ final class SharedStore {
     func uncompleteTask(_ id: UUID, on dateString: String) {
         completionLog[dateString]?.remove(id)
         saveCompletionLog()
-        // If today was already counted toward the streak, reverse it
-        let todayString = Date().dateString
-        if streakData.lastCompletedDate == todayString {
+        // If this date was already counted toward the streak, reverse it
+        if streakData.lastCompletedDate == dateString {
             var data = streakData
             data.currentStreak = max(0, data.currentStreak - 1)
             if data.currentStreak == 0 {
                 data.lastCompletedDate = nil
-            } else {
-                let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
-                data.lastCompletedDate = yesterday.dateString
+            } else if let date = Date.from(dateString: dateString) {
+                let previousDay = Calendar.current.date(byAdding: .day, value: -1, to: date)!
+                data.lastCompletedDate = previousDay.dateString
             }
             streakData = data
         }
@@ -308,22 +341,31 @@ final class SharedStore {
             // Consecutive if every day between lastCompletedDate (exclusive) and today (exclusive)
             // had no tasks scheduled. Task-free days are free passes — not the user's fault.
             var checkDate = Calendar.current.date(byAdding: .day, value: 1, to: lastDate)!
-            var gapIsAllFree = true
+            var gapIsConsecutive = true
             while checkDate < date {
                 let weekday = checkDate.weekday
                 let checkString = checkDate.dateString
-                let hasWeeklyTask = tasks.contains(where: { $0.activeDays.contains(weekday) })
-                let hasOnceTask = tasks.contains { task in
+                let dayStart = Calendar.current.startOfDay(for: checkDate)
+                let weeklyTasksOnDay = tasks.filter {
+                    $0.activeDays.contains(weekday) &&
+                    Calendar.current.startOfDay(for: $0.createdAt) <= dayStart
+                }
+                let onceTasksOnDay = tasks.filter { task in
                     guard case .once(let startDateString) = task.recurrence else { return false }
                     return startDateString <= checkString
                 }
-                if hasWeeklyTask || hasOnceTask {
-                    gapIsAllFree = false
-                    break
+                if !weeklyTasksOnDay.isEmpty || !onceTasksOnDay.isEmpty {
+                    // Gap day had tasks — only breaks streak if not all were completed
+                    let completed = completionLog[checkString] ?? []
+                    let allDone = (weeklyTasksOnDay + onceTasksOnDay).allSatisfy { completed.contains($0.id) }
+                    if !allDone {
+                        gapIsConsecutive = false
+                        break
+                    }
                 }
                 checkDate = Calendar.current.date(byAdding: .day, value: 1, to: checkDate)!
             }
-            data.currentStreak = gapIsAllFree ? data.currentStreak + 1 : 1
+            data.currentStreak = gapIsConsecutive ? data.currentStreak + 1 : 1
         } else {
             data.currentStreak = 1
         }

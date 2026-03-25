@@ -72,10 +72,10 @@ final class LockModeTests: XCTestCase {
             XCTFail("lockExpiresAt should be set")
             return
         }
-        // Should be roughly 7 days from now (within a few seconds)
-        let expectedSeconds: TimeInterval = 7 * 24 * 60 * 60
-        XCTAssertGreaterThan(expires.timeIntervalSince(before), expectedSeconds - 5)
-        XCTAssertLessThan(expires.timeIntervalSince(before), expectedSeconds + 5)
+        // Should be roughly 7 calendar days from now (within a few seconds).
+        // Use Calendar to compute expected date so DST transitions don't break this.
+        let expected = Calendar.current.date(byAdding: .day, value: 7, to: before)!
+        XCTAssertLessThan(abs(expires.timeIntervalSince(expected)), 5)
     }
 
     func testActivateLock_snapshotsLockedAppTokens() {

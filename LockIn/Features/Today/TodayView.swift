@@ -41,6 +41,7 @@ private struct StreakAnimValues: Animatable {
 struct TodayView: View {
 
     @State private var viewModel = TodayViewModel()
+    @Environment(\.scenePhase) private var scenePhase
     // Local trigger so KeyframeAnimator sees a change after the view exists.
     @State private var burstTrigger = 0
     @State private var undoProgress: CGFloat = 1.0
@@ -60,8 +61,8 @@ struct TodayView: View {
             }
         }
         .animation(.easeOut(duration: 0.25), value: viewModel.showUndoToast)
-        .onChange(of: viewModel.showUndoToast) { _, showing in
-            if showing {
+        .onChange(of: viewModel.undoTaskID) { _, newID in
+            if newID != nil {
                 undoProgress = 1.0
                 withAnimation(.linear(duration: 4.0)) {
                     undoProgress = 0.0
@@ -87,6 +88,9 @@ struct TodayView: View {
             streakBanner
         }
         .onAppear { viewModel.onAppear() }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active { viewModel.onAppear() }
+        }
         // Streak incremented while the list is still visible (non-final task completion):
         // fire haptic + burst immediately since the banner is already on screen.
         .onChange(of: viewModel.streakAnimationTrigger) {
