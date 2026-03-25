@@ -100,16 +100,21 @@ final class SettingsViewModel {
     // MARK: - Task actions
 
     func deleteTask(id: UUID) {
+        let title = store.tasks.first(where: { $0.id == id })?.title ?? "unknown"
         store.removeTask(id: id)
         blocking.updateShieldsForCurrentHabitState()
         NotificationCenter.default.post(name: .habitsDidChange, object: nil)
+        ActivityLog.log("TASK_DELETED: \"\(title)\"")
         sync()
     }
 
     func updateTask(_ task: Task) {
+        let stStr = task.blockingStartTime.map { "\($0.hour ?? 0):\(String(format: "%02d", $0.minute ?? 0))" } ?? "nil"
         store.updateTask(task)
         blocking.updateShieldsForCurrentHabitState()
+        SchedulingService.shared.scheduleBlockingStartTimeMonitors(for: store.tasks)
         NotificationCenter.default.post(name: .habitsDidChange, object: nil)
+        ActivityLog.log("TASK_EDITED: \"\(task.title)\" blocksApps=\(task.blocksApps) startTime=\(stStr)")
         sync()
     }
 

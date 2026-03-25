@@ -57,8 +57,8 @@ struct LockInApp: App {
                     // Only request on launch for users who completed onboarding already.
                     // New users get the prompt from the Screen Time explainer step.
                     if SharedStore.shared.hasCompletedOnboarding {
+                        ActivityLog.log("APP_LAUNCHED")
                         await requestFamilyControlsAuthorization()
-                        // Register monitors only after authorization — startMonitoring throws if called without it.
                         SchedulingService.shared.scheduleDailyMonitorIfNeeded()
                         SchedulingService.shared.scheduleBlockingStartTimeMonitors(for: SharedStore.shared.tasks)
                     }
@@ -66,6 +66,7 @@ struct LockInApp: App {
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active,
                        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+                        ActivityLog.log("APP_FOREGROUNDED")
                         BlockingService.shared.updateShieldsForCurrentHabitState()
                         SchedulingService.shared.rescheduleReminderIfNeeded()
                         SchedulingService.shared.scheduleBlockingStartTimeMonitors(for: SharedStore.shared.tasks)

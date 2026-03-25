@@ -105,6 +105,18 @@ struct SettingsView: View {
                     }
                 }
                 .listRowBackground(DesignSystem.Colors.background)
+                #if DEBUG
+                // MARK: Section — Activity Log (debug only)
+                Section {
+                    NavigationLink {
+                        DebugLogView()
+                    } label: {
+                        Text("Activity Log")
+                            .foregroundStyle(DesignSystem.Colors.secondaryText)
+                    }
+                }
+                .listRowBackground(DesignSystem.Colors.background)
+                #endif
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)

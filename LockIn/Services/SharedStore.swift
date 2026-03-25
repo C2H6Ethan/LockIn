@@ -27,6 +27,16 @@ final class SharedStore {
         }
     }
 
+    /// Compact one-liner of current app state for activity log entries.
+    var stateSnapshot: String {
+        let today = Date().dateString
+        let done  = completionLog[today]?.count ?? 0
+        let s     = streakData
+        let taskNames = tasks.map(\.title).joined(separator: ", ")
+        let frozenDate = defaults.string(forKey: Keys.frozenDate) ?? "nil"
+        return "streak=\(s.currentStreak) last=\(s.lastCompletedDate ?? "nil") freeze=\(streakFreezeCount) frozen=\(frozenDate) tasks=[\(taskNames)] doneToday=\(done)"
+    }
+
     var isLocked: Bool {
         guard let expiry = lockExpiresAt else { return false }
         return expiry > Date()
@@ -210,12 +220,16 @@ final class SharedStore {
     /// Consume the freeze: patch lastCompletedDate to yesterday so today's completion can extend the streak.
     func consumeFreeze() {
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        let frozenDateString = yesterday.dateString
         var data = streakData
-        data.lastCompletedDate = yesterday.dateString
+        data.lastCompletedDate = frozenDateString
         streakData = data
         streakFreezeCount = max(0, streakFreezeCount - 1)
         // Stamp the current week so streakFreezeAvailable won't reset the count back to 1.
         streakFreezeWeekString = Date().isoWeekString
+        // Remember which date was frozen so reconcileStreakAfterEdit won't roll it back.
+        defaults.set(frozenDateString, forKey: Keys.frozenDate)
+        defaults.synchronize()
         pendingFreezeOffer = false
     }
 
@@ -249,6 +263,7 @@ final class SharedStore {
     func removeTask(id: UUID) {
         tasks.removeAll { $0.id == id }
         saveTasks()
+        updateStreak(for: Date().dateString)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -266,6 +281,11 @@ final class SharedStore {
     private func reconcileStreakAfterEdit() {
         guard let lastString = streakData.lastCompletedDate,
               let lastDate = Date.from(dateString: lastString) else { return }
+
+        // If this date was protected by a streak freeze, don't roll it back — the freeze
+        // deliberately set lastCompletedDate to a day where tasks weren't actually done.
+        let frozenDateString = defaults.string(forKey: Keys.frozenDate)
+        if lastString == frozenDateString { return }
 
         // Check if lastCompletedDate still has all tasks done
         let remaining = buildTodayTasks(on: lastDate)
@@ -380,6 +400,7 @@ final class SharedStore {
     /// Also cleans up once tasks completed on a previous day.
     func checkAndUpdateStreak(today: Date = Date()) {
         let todayString = today.dateString
+
         // Refresh freeze token using the injected date so tests stay deterministic.
         let currentWeek = today.isoWeekString
         if streakFreezeWeekString != currentWeek {
@@ -398,7 +419,7 @@ final class SharedStore {
         guard let lastString = streakData.lastCompletedDate,
               let lastDate = Date.from(dateString: lastString) else { return }
 
-        if lastString == todayString { return } // already updated today
+        if lastString == todayString { return }
 
         // Scan ALL days from lastDate+1 up to yesterday and count missed days.
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
@@ -409,8 +430,12 @@ final class SharedStore {
             let checkString = checkDate.dateString
             let weekday = checkDate.weekday
 
-            // Weekly tasks scheduled for this weekday
-            let weeklyTasks = tasks.filter { $0.activeDays.contains(weekday) }
+            // Weekly tasks scheduled for this weekday that existed on this day
+            let dayStart = Calendar.current.startOfDay(for: checkDate)
+            let weeklyTasks = tasks.filter {
+                $0.activeDays.contains(weekday) &&
+                Calendar.current.startOfDay(for: $0.createdAt) <= dayStart
+            }
             // Once tasks that started on or before this date and weren't completed yet
             let onceTasks = tasks.filter { task in
                 guard case .once(let startDateString) = task.recurrence else { return false }
@@ -601,5 +626,6 @@ final class SharedStore {
         static let reminderMinute = "reminderMinute"
         static let streakFreezeCount = "streakFreezeCount"
         static let streakFreezeWeekString = "streakFreezeWeekString"
+        static let frozenDate = "frozenDate"
     }
 }

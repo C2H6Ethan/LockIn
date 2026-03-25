@@ -9,7 +9,6 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         super.intervalDidStart(for: activity)
 
         if activity.rawValue == Constants.DeviceActivity.bypassExpiry {
-            // Bypass window expired — clear it and re-apply shields.
             let store = SharedStore(suiteName: Constants.AppGroup.id)
             store.unblockExpiresAt = nil
             applyOrRemoveShields()

@@ -60,8 +60,8 @@ final class StepsChallengeViewModel {
         guard !isComplete else { return }
         isComplete = true
         store.recordBypassUsed()
-        BlockingService.shared.temporaryUnblock(
-            duration: TimeInterval(Constants.Stepping.accessWindowMinutes * 60)
-        )
+        let duration = TimeInterval(Constants.Stepping.accessWindowMinutes * 60)
+        BlockingService.shared.temporaryUnblock(duration: duration)
+        ActivityLog.log("BYPASS_STARTED: \(Constants.Stepping.accessWindowMinutes)min window, bypassCount=\(store.bypassCountToday)")
     }
 }

@@ -65,6 +65,9 @@ final class TodayViewModel {
 
     func onAppear() {
         store.checkAndUpdateStreak()
+        if store.pendingFreezeOffer {
+            ActivityLog.log("FREEZE_OFFERED")
+        }
         sync()
         // Defer freeze offer by one run loop — fullScreenCover won't present
         // reliably if isPresented becomes true during onAppear.
@@ -107,6 +110,7 @@ final class TodayViewModel {
         showingAddTask = false
         blocking.updateShieldsForCurrentHabitState()
         NotificationCenter.default.post(name: .habitsDidChange, object: nil)
+        ActivityLog.log("TASK_ADDED: \"\(title)\" blocksApps=\(blocksApps) decremented=\(shouldDecrement)")
         sync()
     }
 
@@ -120,6 +124,7 @@ final class TodayViewModel {
         pendingFreezeOffer = false
         sync()
         blocking.updateShieldsForCurrentHabitState()
+        ActivityLog.log("FREEZE_ACCEPTED")
     }
 
     func declineFreeze() {
@@ -127,6 +132,7 @@ final class TodayViewModel {
         pendingFreezeOffer = false
         sync()
         blocking.updateShieldsForCurrentHabitState()
+        ActivityLog.log("FREEZE_DECLINED")
     }
 
     func completeTask(_ task: TodayTask) {
@@ -144,7 +150,9 @@ final class TodayViewModel {
         SchedulingService.shared.rescheduleReminderIfNeeded()
         WidgetCenter.shared.reloadAllTimelines()
         sync()
-        if store.streakData.currentStreak > prevStreak {
+        let streakChanged = store.streakData.currentStreak > prevStreak
+        ActivityLog.log("TASK_COMPLETED: \"\(task.title)\"" + (streakChanged ? " → streak now \(store.streakData.currentStreak)" : ""))
+        if streakChanged {
             streakAnimationTrigger += 1
         }
 
@@ -166,6 +174,7 @@ final class TodayViewModel {
         blocking.updateShieldsForCurrentHabitState()
         WidgetCenter.shared.reloadAllTimelines()
         sync()
+        ActivityLog.log("TASK_UNDO: \"\(task.title)\"")
         clearUndo()
     }
 
