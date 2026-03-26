@@ -644,7 +644,7 @@ final class TaskEditStreakTests: XCTestCase {
         XCTAssertEqual(store.streakData.currentStreak, 0)
 
         // Delete the new task → all remaining tasks are complete → streak should restore to 1
-        store.removeTask(id: newTask.id)
+        store.removeTask(id: newTask.id, today: today)
         XCTAssertEqual(store.streakData.currentStreak, 1)
         XCTAssertEqual(store.streakData.lastCompletedDate, todayString)
     }
@@ -673,7 +673,7 @@ final class TaskEditStreakTests: XCTestCase {
         store.streakData = data
 
         // Delete → should restore to 6
-        store.removeTask(id: newTask.id)
+        store.removeTask(id: newTask.id, today: today)
         XCTAssertEqual(store.streakData.currentStreak, 6)
         XCTAssertEqual(store.streakData.lastCompletedDate, todayString)
     }

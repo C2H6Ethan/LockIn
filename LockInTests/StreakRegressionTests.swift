@@ -102,7 +102,7 @@ final class StreakRegressionTests: XCTestCase {
 
         // Simulate freeze offered and accepted
         store.pendingFreezeOffer = true
-        store.consumeFreeze()
+        store.consumeFreeze(today: today)
 
         XCTAssertEqual(store.streakData.currentStreak, 5)
         XCTAssertEqual(store.streakData.lastCompletedDate, yesterday.dateString)
@@ -276,7 +276,7 @@ final class StreakRegressionTests: XCTestCase {
         store.updateStreak(for: today.dateString)
         XCTAssertEqual(store.streakData.currentStreak, 1)
 
-        store.removeTask(id: otherTask.id)
+        store.removeTask(id: otherTask.id, today: today)
 
         XCTAssertEqual(store.streakData.currentStreak, 1,
                        "Deleting a task on a different day must not affect the current streak")

@@ -154,7 +154,7 @@ final class StreakFreezeTests: XCTestCase {
         let monday = makeDate(year: 2026, month: 3, day: 9)
         let wednesday = makeDate(year: 2026, month: 3, day: 11)
         store.streakData = StreakData(currentStreak: 3, longestStreak: 3, lastCompletedDate: monday.dateString)
-        store.addTask(Task(title: "Run", activeDays: [3], blocksApps: true)) // Tuesday task, not completed
+        store.addTask(Task(title: "Run", activeDays: [3], blocksApps: true, createdAt: monday)) // Tuesday task, not completed
 
         store.checkAndUpdateStreak(today: wednesday)
 
@@ -166,7 +166,7 @@ final class StreakFreezeTests: XCTestCase {
         let monday = makeDate(year: 2026, month: 3, day: 9)
         let wednesday = makeDate(year: 2026, month: 3, day: 11)
         store.streakData = StreakData(currentStreak: 3, longestStreak: 3, lastCompletedDate: monday.dateString)
-        store.addTask(Task(title: "Run", activeDays: [3], blocksApps: true))
+        store.addTask(Task(title: "Run", activeDays: [3], blocksApps: true, createdAt: monday))
         // Consume the freeze so none available
         store.streakFreezeCount = 0
         store.streakFreezeWeekString = wednesday.isoWeekString
@@ -193,8 +193,8 @@ final class StreakFreezeTests: XCTestCase {
         let sunday    = makeDate(year: 2026, month: 3, day: 8)   // weekday 1
         let thursday  = makeDate(year: 2026, month: 3, day: 12)  // weekday 5
         store.streakData = StreakData(currentStreak: 3, longestStreak: 3, lastCompletedDate: sunday.dateString)
-        store.addTask(Task(title: "Mon Task", activeDays: [2], blocksApps: true)) // weekday 2 = Mon
-        store.addTask(Task(title: "Wed Task", activeDays: [4], blocksApps: true)) // weekday 4 = Wed
+        store.addTask(Task(title: "Mon Task", activeDays: [2], blocksApps: true, createdAt: sunday)) // weekday 2 = Mon
+        store.addTask(Task(title: "Wed Task", activeDays: [4], blocksApps: true, createdAt: sunday)) // weekday 4 = Wed
         // Freeze is available (fresh store resets to 1)
 
         store.checkAndUpdateStreak(today: thursday)

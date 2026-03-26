@@ -144,8 +144,8 @@ final class StreakTests: XCTestCase {
 
     func testUpdateStreak_notAllBlockingCompleted_noChange() {
         let date = makeDate(year: 2026, month: 3, day: 11)
-        let task1 = addBlockingTask(on: 4)
-        let _ = addBlockingTask(on: 4) // task2 not completed
+        let task1 = addBlockingTask(on: 4, createdAt: date)
+        let _ = addBlockingTask(on: 4, createdAt: date) // task2 not completed
         store.completeTask(task1.id, on: date.dateString)
 
         store.updateStreak(for: date.dateString)
@@ -230,7 +230,7 @@ final class StreakTests: XCTestCase {
         // Drain freeze so streak resets immediately (no offer prompt)
         store.streakFreezeCount = 0
         store.streakFreezeWeekString = today.isoWeekString
-        addBlockingTask(on: 3) // Tuesday task, never completed
+        addBlockingTask(on: 3, createdAt: lastCompleted) // Tuesday task, created Mon, never completed
         store.checkAndUpdateStreak(today: today)
         XCTAssertEqual(store.streakData.currentStreak, 0)
     }
@@ -243,7 +243,7 @@ final class StreakTests: XCTestCase {
         // Drain freeze so streak resets immediately (no offer prompt)
         store.streakFreezeCount = 0
         store.streakFreezeWeekString = today.isoWeekString
-        let task = Task(title: "Floss", activeDays: [3], blocksApps: false) // Tuesday, never completed
+        let task = Task(title: "Floss", activeDays: [3], blocksApps: false, createdAt: lastCompleted) // Tuesday, created Mon, never completed
         store.addTask(task)
         store.checkAndUpdateStreak(today: today)
         XCTAssertEqual(store.streakData.currentStreak, 0)

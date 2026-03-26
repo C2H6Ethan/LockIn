@@ -218,15 +218,15 @@ final class SharedStore {
     }
 
     /// Consume the freeze: patch lastCompletedDate to yesterday so today's completion can extend the streak.
-    func consumeFreeze() {
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+    func consumeFreeze(today: Date = Date()) {
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
         let frozenDateString = yesterday.dateString
         var data = streakData
         data.lastCompletedDate = frozenDateString
         streakData = data
         streakFreezeCount = max(0, streakFreezeCount - 1)
         // Stamp the current week so streakFreezeAvailable won't reset the count back to 1.
-        streakFreezeWeekString = Date().isoWeekString
+        streakFreezeWeekString = today.isoWeekString
         // Remember which date was frozen so reconcileStreakAfterEdit won't roll it back.
         defaults.set(frozenDateString, forKey: Keys.frozenDate)
         defaults.synchronize()
@@ -260,10 +260,10 @@ final class SharedStore {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
-    func removeTask(id: UUID) {
+    func removeTask(id: UUID, today: Date = Date()) {
         tasks.removeAll { $0.id == id }
         saveTasks()
-        updateStreak(for: Date().dateString)
+        updateStreak(for: today.dateString)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -349,8 +349,16 @@ final class SharedStore {
         let remaining = buildTodayTasks(on: date)
         guard remaining.isEmpty else { return }
 
-        // Must have at least one task in the system (don't increment on task-free days).
-        guard !tasks.isEmpty else { return }
+        // Must have evidence that tasks were actually relevant for this date:
+        // either directly completed on this date, or completed as carryovers from the past 7 days.
+        // This prevents incrementing the streak when removeTask fires on a day with no scheduled tasks.
+        let directCompletions = completionLog[dateString] ?? []
+        let carryoverCompletions = date.previousDays(count: 7).reduce(into: Set<UUID>()) { acc, past in
+            if let completions = completionLog[past.dateString] { acc.formUnion(completions) }
+        }
+        let anyRelevantCompletion = !directCompletions.isEmpty ||
+            tasks.contains { carryoverCompletions.contains($0.id) }
+        guard anyRelevantCompletion else { return }
 
         var data = streakData
         guard data.lastCompletedDate != dateString else { return } // already counted
@@ -414,7 +422,7 @@ final class SharedStore {
                 return completedDate < todayString
             }
             .map { $0.id }
-        completedOnceTaskIDs.forEach { removeTask(id: $0) }
+        completedOnceTaskIDs.forEach { removeTask(id: $0, today: today) }
         guard streakData.currentStreak > 0 else { return }
         guard let lastString = streakData.lastCompletedDate,
               let lastDate = Date.from(dateString: lastString) else { return }
@@ -480,7 +488,10 @@ final class SharedStore {
         var result: [TodayTask] = []
 
         // Today's scheduled weekly tasks
+        let todayStart = Calendar.current.startOfDay(for: date)
         for task in tasks where task.activeDays.contains(todayWeekday) {
+            // Skip tasks created after today (e.g. scheduled for today's weekday but not yet in effect)
+            guard Calendar.current.startOfDay(for: task.createdAt) <= todayStart else { continue }
             seenIds.insert(task.id)
             let isCompleted = completionLog[todayString]?.contains(task.id) ?? false
             if !isCompleted {
