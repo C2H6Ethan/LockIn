@@ -6,7 +6,7 @@ struct AddTaskSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var title = ""
-    @State private var repeats = true
+    @State private var repeats = false
     @State private var selectedDays: Set<Int> = []
     @State private var onceStartDate: String = Date().dateString
     @State private var showingDatePicker = false

@@ -150,10 +150,12 @@ final class TodayViewModel {
         SchedulingService.shared.rescheduleReminderIfNeeded()
         WidgetCenter.shared.reloadAllTimelines()
         sync()
-        let streakChanged = store.streakData.currentStreak > prevStreak
-        ActivityLog.log("TASK_COMPLETED: \"\(task.title)\"" + (streakChanged ? " → streak now \(store.streakData.currentStreak)" : ""))
+        let newStreak = store.streakData.currentStreak
+        let streakChanged = newStreak > prevStreak
+        ActivityLog.log("TASK_COMPLETED: \"\(task.title)\"" + (streakChanged ? " → streak now \(newStreak)" : ""))
         if streakChanged {
             streakAnimationTrigger += 1
+            ReviewManager.requestIfEligible(currentStreak: newStreak)
         }
 
         // Offer brief undo window

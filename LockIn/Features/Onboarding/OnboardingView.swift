@@ -9,6 +9,7 @@ struct OnboardingView: View {
     @State private var step = 0
     @State private var selection = FamilyActivitySelection()
     @State private var showingPicker = false
+    @Environment(\.scenePhase) private var scenePhase
 
     // First task state — mirrors AddTaskSheet
     @State private var habitTitle = ""
@@ -66,6 +67,14 @@ struct OnboardingView: View {
             SharedStore.shared.selectedApps = selection
             BlockingService.shared.updateShieldsForCurrentHabitState()
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            // User may have approved Screen Time in the system dialog while app was
+            // backgrounded (or in Settings). Detect it when we come back to foreground.
+            if newPhase == .active && step == 1
+                && AuthorizationCenter.shared.authorizationStatus == .approved {
+                advance()
+            }
+        }
     }
 
     // MARK: - Steps
@@ -111,16 +120,19 @@ struct OnboardingView: View {
 
             primaryButton("Got it. Let's set it up.") {
                 _Concurrency.Task {
-                    do {
-                        try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+                    try? await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+                    // Advance if approved — iOS sometimes throws even on success,
+                    // or defers the dialog until the next foreground cycle.
+                    if AuthorizationCenter.shared.authorizationStatus == .approved {
                         advance()
-                    } catch {
-                        // User declined — stay on this step
                     }
                 }
             }
         }
         .padding(DesignSystem.Spacing.lg)
+        .onAppear {
+            if AuthorizationCenter.shared.authorizationStatus == .approved { advance() }
+        }
     }
 
     private var healthKitStep: some View {
@@ -423,10 +435,20 @@ struct OnboardingView: View {
                 }
 
                 let titleFilled = !habitTitle.trimmingCharacters(in: .whitespaces).isEmpty
-                primaryButton(titleFilled ? "Add & finish" : "Skip") {
+                // Enabled when skipping (no title) OR when all required fields are filled.
+                let isEnabled = !titleFilled || canAddTask
+                Button {
                     finish()
+                } label: {
+                    Text(titleFilled ? "Add & finish" : "Skip")
+                        .font(.system(.body, weight: .medium))
+                        .foregroundStyle(isEnabled ? DesignSystem.Colors.background : DesignSystem.Colors.secondaryText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DesignSystem.Spacing.md)
+                        .background(isEnabled ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText.opacity(0.2))
+                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md))
                 }
-                .disabled(titleFilled && !canAddTask)
+                .disabled(!isEnabled)
                 .padding(.bottom, DesignSystem.Spacing.lg)
             }
             .padding(DesignSystem.Spacing.lg)
