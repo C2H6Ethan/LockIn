@@ -4,15 +4,19 @@ struct TaskRowView: View {
 
     let task: TodayTask
     let onComplete: () -> Void
-    var stepCount: Int? = nil   // non-nil only for step goal tasks
+    var stepCount: Int? = nil            // non-nil only for step goal tasks
     var isCompleted: Bool = false
+    var locationVerificationFailed: Bool = false  // true while showing "must be at X" error
+    var locationAlwaysAuthorized: Bool = false
 
     @State private var hapticTrigger = false
 
     var body: some View {
         HStack(alignment: .top, spacing: DesignSystem.Spacing.md) {
-            // Left icon — step icon for step tasks, checkbox for manual tasks
-            if task.stepTarget != nil {
+            // Left icon
+            let stepsReached = task.stepTarget.map { (stepCount ?? 0) >= $0 } ?? false
+            if task.stepTarget != nil && !(task.location != nil && stepsReached) {
+                // Walk icon: pure step task, or combined step+location task waiting on steps
                 Image(systemName: "figure.walk")
                     .font(.system(size: 18))
                     .foregroundStyle(
@@ -58,6 +62,25 @@ struct TaskRowView: View {
                             : DesignSystem.Colors.primaryText
                     )
 
+                // Location verification error (transient — shown until cleared)
+                if locationVerificationFailed, let locationName = task.location?.name {
+                    HStack(spacing: 3) {
+                        Image(systemName: "mappin.slash")
+                            .font(.system(size: 10))
+                        Text(locationAlwaysAuthorized ? "Must have been at \(locationName)" : "Must be at \(locationName) to complete")
+                            .font(.system(.caption2))
+                    }
+                    .foregroundStyle(DesignSystem.Colors.overdue)
+                } else if let loc = task.location {
+                    HStack(spacing: 3) {
+                        Image(systemName: "mappin")
+                            .font(.system(size: 10))
+                        Text(loc.name)
+                            .font(.system(.caption2))
+                    }
+                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+                }
+
                 if let target = task.stepTarget {
                     // Step progress subtitle — cap display at target when completed
                     let current = isCompleted ? target : (stepCount ?? 0)
@@ -70,7 +93,7 @@ struct TaskRowView: View {
                                     ? DesignSystem.Colors.accent
                                     : DesignSystem.Colors.secondaryText
                         )
-                } else if task.isCarryOver, let day = task.originalDay {
+                } else if task.isCarryOver, let day = task.originalDay, task.location == nil {
                     Text(task.isOnce ? "since \(day)" : "unfinished from \(day)")
                         .font(.system(.caption, design: .default, weight: .regular))
                         .foregroundStyle(task.isOnce ? DesignSystem.Colors.secondaryText : DesignSystem.Colors.overdue)

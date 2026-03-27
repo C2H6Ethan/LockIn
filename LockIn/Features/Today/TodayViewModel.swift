@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import Observation
 import WidgetKit
@@ -19,12 +20,18 @@ final class TodayViewModel {
     private(set) var undoTaskID: UUID?
     private var undoTask: TodayTask?
     private var undoTimer: Timer?
+    /// Set to the task ID when location verification fails. Drives error state in TaskRowView.
+    private(set) var locationVerificationFailed: UUID?
+    /// True after first successful location task completion when "When In Use" — prompts upgrade to Always.
+    var showLocationUpgradePrompt = false
 
     // MARK: - Computed
 
     var allBlockingDone: Bool {
         !todayTasks.contains { $0.blocksApps }
     }
+
+    private(set) var locationAlwaysAuthorized = false
 
     var isHealthKitAvailable: Bool { stepProvider.isAvailable }
 
@@ -33,6 +40,7 @@ final class TodayViewModel {
     private let store: SharedStore
     private let blocking: BlockingService
     private let stepProvider: any StepProviding
+    private let locationVerifier: any LocationVerifying
     private var notificationObserver: (any NSObjectProtocol)?
 
     // MARK: - Init
@@ -40,11 +48,14 @@ final class TodayViewModel {
     init(
         store: SharedStore = .shared,
         blocking: BlockingService = .shared,
-        stepProvider: any StepProviding = StepCountService.shared
+        stepProvider: any StepProviding = StepCountService.shared,
+        locationVerifier: (any LocationVerifying)? = nil
     ) {
+        self.locationVerifier = locationVerifier ?? LocationVerificationService.shared
         self.store = store
         self.blocking = blocking
         self.stepProvider = stepProvider
+
         notificationObserver = NotificationCenter.default.addObserver(
             forName: .habitsDidChange,
             object: nil,
@@ -82,8 +93,8 @@ final class TodayViewModel {
         }
     }
 
-    func addTask(title: String, recurrence: TaskRecurrence, blocksApps: Bool, stepTarget: Int? = nil, blockingStartTime: DateComponents? = nil) {
-        let task = Task(title: title, recurrence: recurrence, blocksApps: blocksApps, stepTarget: stepTarget, blockingStartTime: blockingStartTime)
+    func addTask(title: String, recurrence: TaskRecurrence, blocksApps: Bool, stepTarget: Int? = nil, blockingStartTime: DateComponents? = nil, location: TaskLocation? = nil) {
+        let task = Task(title: title, recurrence: recurrence, blocksApps: blocksApps, stepTarget: stepTarget, blockingStartTime: blockingStartTime, location: location)
         store.addTask(task)
         // Decrement streak for any task added for today (blocking or not)
         let todayString = Date().dateString
@@ -119,6 +130,11 @@ final class TodayViewModel {
         addTask(title: title, recurrence: .weekly(days: activeDays), blocksApps: blocksApps)
     }
 
+    func upgradeToAlwaysLocation() {
+        locationVerifier.requestAlwaysAuthorization()
+        showLocationUpgradePrompt = false
+    }
+
     func consumeFreeze() {
         store.consumeFreeze()
         pendingFreezeOffer = false
@@ -136,6 +152,56 @@ final class TodayViewModel {
     }
 
     func completeTask(_ task: TodayTask) {
+        guard !completedTasks.contains(where: { $0.id == task.id }) else { return }
+        guard task.location == nil else {
+            // Location task — verify asynchronously
+            _Concurrency.Task { [weak self] in
+                await self?.completeTaskWithLocationCheck(task)
+            }
+            return
+        }
+        markComplete(task)
+    }
+
+    /// Async entry point for location-verified completion. Also callable directly from tests.
+    @MainActor
+    func completeTaskWithLocationCheck(_ task: TodayTask) async {
+        guard task.location != nil else { markComplete(task); return }
+
+        // Check if already visited today via background monitoring
+        if store.hasVisitedLocation(taskID: task.id, on: Date().dateString) {
+            locationVerificationFailed = nil
+            markComplete(task)
+            // One-time prompt to upgrade to Always authorization for background geofencing
+            if locationVerifier.authorizationStatus == .authorizedWhenInUse && !store.hasPromptedLocationAlways {
+                store.hasPromptedLocationAlways = true
+                showLocationUpgradePrompt = true
+            }
+            return
+        }
+
+        // Show error state immediately so feedback is instant, regardless of GPS latency
+        locationVerificationFailed = task.id
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            if self?.locationVerificationFailed == task.id {
+                self?.locationVerificationFailed = nil
+            }
+        }
+
+        // Not visited — try current location
+        let verified = await locationVerifier.verifyCurrentLocation(for: task)
+        if verified {
+            locationVerificationFailed = nil
+            markComplete(task)
+            // One-time prompt to upgrade to Always authorization for background geofencing
+            if locationVerifier.authorizationStatus == .authorizedWhenInUse && !store.hasPromptedLocationAlways {
+                store.hasPromptedLocationAlways = true
+                showLocationUpgradePrompt = true
+            }
+        }
+    }
+
+    private func markComplete(_ task: TodayTask) {
         // Clear any pending undo from a previous completion
         clearUndo()
 
@@ -207,6 +273,7 @@ final class TodayViewModel {
     func autoCompleteStepTasksIfNeeded() {
         let toComplete = todayTasks.filter { task in
             guard let target = task.stepTarget else { return false }
+            guard task.location == nil else { return false } // combined tasks need manual tap for location check
             return stepsToday >= target
         }
         for task in toComplete {
@@ -217,6 +284,7 @@ final class TodayViewModel {
     // MARK: - Private
 
     private func sync() {
+        locationAlwaysAuthorized = locationVerifier.authorizationStatus == .authorizedAlways
         let all = store.buildTodayTasks()
         // Carryovers first, then today's scheduled tasks
         todayTasks = all.sorted { a, b in
@@ -237,7 +305,8 @@ final class TodayViewModel {
                     originalDay: nil,
                     scheduledDateString: Date().dateString,
                     isOnce: task.isOnce,
-                    stepTarget: task.stepTarget
+                    stepTarget: task.stepTarget,
+                    location: task.location
                 )
             }
 

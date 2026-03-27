@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 struct AddTaskSheet: View {
 
@@ -14,10 +15,12 @@ struct AddTaskSheet: View {
     @State private var blocksApps = true
     @State private var blockingStartTime: DateComponents? = nil
     @State private var showingStartTimePicker = false
-    @State private var selectedDetent: PresentationDetent = .medium
     @State private var startTimePicker = Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var hasStepGoal = false
     @State private var stepTarget: Int = 5_000
+    @State private var hasLocation = false
+    @State private var selectedLocation: TaskLocation? = nil
+    @State private var showLocationDeniedHint = false
     @State private var isSubmitting = false
     @FocusState private var titleFocused: Bool
 
@@ -42,230 +45,294 @@ struct AddTaskSheet: View {
 
             Color.clear
                 .contentShape(Rectangle())
-                .onTapGesture { showingStartTimePicker = false }
+                .onTapGesture {
+                    showingStartTimePicker = false
+                    titleFocused = false
+                }
 
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
-                // Title field
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                    Text("What do you need to do?")
-                        .font(.system(.subheadline))
+            VStack(spacing: 0) {
+                // Nav bar
+                HStack {
+                    Button("Cancel") { dismiss() }
+                        .font(.system(.body))
                         .foregroundStyle(DesignSystem.Colors.secondaryText)
 
-                    TextField("", text: $title)
-                        .font(.system(.title3, weight: .regular))
+                    Spacer()
+
+                    Text("New Task")
+                        .font(.system(.body, weight: .semibold))
                         .foregroundStyle(DesignSystem.Colors.primaryText)
-                        .tint(DesignSystem.Colors.accent)
-                        .focused($titleFocused)
-                        .submitLabel(.done)
-                        .overlay(alignment: .bottom) {
-                            Rectangle()
-                                .frame(height: 1)
-                                .foregroundStyle(DesignSystem.Colors.secondaryText.opacity(0.3))
-                                .offset(y: 8)
-                        }
-                }
 
-                // Repeats toggle
-                Toggle(isOn: $repeats) {
-                    Text("Repeats")
-                        .font(.system(.body))
-                        .foregroundStyle(DesignSystem.Colors.primaryText)
-                }
-                .tint(DesignSystem.Colors.accent)
+                    Spacer()
 
-                if repeats {
-                    // Day picker
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                        Text("Repeat on")
-                            .font(.system(.subheadline))
-                            .foregroundStyle(DesignSystem.Colors.secondaryText)
-
-                        HStack(spacing: DesignSystem.Spacing.xs) {
-                            ForEach(dayOptions, id: \.weekday) { option in
-                                let isSelected = selectedDays.contains(option.weekday)
-                                Button {
-                                    if isSelected { selectedDays.remove(option.weekday) }
-                                    else { selectedDays.insert(option.weekday) }
-                                } label: {
-                                    Text(option.label)
-                                        .font(.system(.caption, weight: isSelected ? .semibold : .regular))
-                                        .foregroundStyle(
-                                            isSelected
-                                                ? DesignSystem.Colors.background
-                                                : DesignSystem.Colors.secondaryText
-                                        )
-                                        .padding(.horizontal, DesignSystem.Spacing.sm)
-                                        .padding(.vertical, DesignSystem.Spacing.xs + 2)
-                                        .background(
-                                            isSelected
-                                                ? DesignSystem.Colors.accent
-                                                : DesignSystem.Colors.secondaryText.opacity(0.12)
-                                        )
-                                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+                    Button {
+                        guard !isSubmitting else { return }
+                        isSubmitting = true
+                        let recurrence: TaskRecurrence = repeats
+                            ? .weekly(days: selectedDays)
+                            : .once(startDate: onceStartDate)
+                        viewModel.addTask(
+                            title: title.trimmingCharacters(in: .whitespaces),
+                            recurrence: recurrence,
+                            blocksApps: blocksApps,
+                            stepTarget: hasStepGoal ? stepTarget : nil,
+                            blockingStartTime: blockingStartTime,
+                            location: hasLocation ? selectedLocation : nil
+                        )
+                        dismiss()
+                    } label: {
+                        Text("Add")
+                            .font(.system(.body, weight: .semibold))
+                            .foregroundStyle(canAdd ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText.opacity(0.4))
                     }
-                } else {
-                    // Once — start date picker
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                        Text("Starting")
-                            .font(.system(.subheadline))
-                            .foregroundStyle(DesignSystem.Colors.secondaryText)
+                    .disabled(!canAdd || isSubmitting)
+                }
+                .padding(.horizontal, DesignSystem.Spacing.lg)
+                .padding(.vertical, DesignSystem.Spacing.md)
 
-                        let todayStr = Date().dateString
-                        let tomorrowStr = Calendar.current.date(byAdding: .day, value: 1, to: Date())!.dateString
-                        let isCustom = showingDatePicker || (onceStartDate != todayStr && onceStartDate != tomorrowStr)
+                Rectangle()
+                    .fill(DesignSystem.Colors.secondaryText.opacity(0.15))
+                    .frame(height: 0.5)
 
-                        let customLabel: String = {
-                            guard isCustom, !showingDatePicker,
-                                  let d = Date.from(dateString: onceStartDate) else { return "Pick date" }
-                            let f = DateFormatter()
-                            f.dateFormat = "MMM d"
-                            f.locale = Locale(identifier: "en_US_POSIX")
-                            return f.string(from: d)
-                        }()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+                        // Title field
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                            Text("What do you need to do?")
+                                .font(.system(.subheadline))
+                                .foregroundStyle(DesignSystem.Colors.secondaryText)
 
-                        HStack(spacing: DesignSystem.Spacing.xs) {
-                            startChip("Today",    selected: !isCustom && onceStartDate == todayStr)    { onceStartDate = todayStr;    showingDatePicker = false }
-                            startChip("Tomorrow", selected: !isCustom && onceStartDate == tomorrowStr) { onceStartDate = tomorrowStr; showingDatePicker = false }
-                            startChip(customLabel, selected: isCustom) { showingDatePicker = isCustom ? !showingDatePicker : true }
-                        }
-
-                        if isCustom && showingDatePicker {
-                            DatePicker("", selection: $pickerDate, in: Date()..., displayedComponents: .date)
-                                .datePickerStyle(.graphical)
+                            TextField("", text: $title)
+                                .font(.system(.title3, weight: .regular))
+                                .foregroundStyle(DesignSystem.Colors.primaryText)
                                 .tint(DesignSystem.Colors.accent)
-                                .onChange(of: pickerDate) { _, newDate in
-                                    onceStartDate = newDate.dateString
-                                    showingDatePicker = false
+                                .focused($titleFocused)
+                                .submitLabel(.done)
+                                .overlay(alignment: .bottom) {
+                                    Rectangle()
+                                        .frame(height: 1)
+                                        .foregroundStyle(DesignSystem.Colors.secondaryText.opacity(0.3))
+                                        .offset(y: 8)
                                 }
                         }
-                    }
-                }
+                        .padding(.top, DesignSystem.Spacing.sm)
 
-                // Step goal toggle + chips — hidden if HealthKit unavailable
-                if viewModel.isHealthKitAvailable {
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                        Toggle(isOn: $hasStepGoal) {
-                            Text("Step goal")
+                        // Repeats toggle
+                        Toggle(isOn: $repeats) {
+                            Text("Repeats")
                                 .font(.system(.body))
                                 .foregroundStyle(DesignSystem.Colors.primaryText)
                         }
                         .tint(DesignSystem.Colors.accent)
 
-                        Text("Auto-completes task with steps")
-                            .font(.system(.caption))
-                            .foregroundStyle(DesignSystem.Colors.secondaryText)
-                    }
+                        if repeats {
+                            // Day picker
+                            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                                Text("Repeat on")
+                                    .font(.system(.subheadline))
+                                    .foregroundStyle(DesignSystem.Colors.secondaryText)
 
-                    if hasStepGoal {
-                        HStack(spacing: DesignSystem.Spacing.xs) {
-                            ForEach(stepOptions, id: \.value) { option in
-                                let isSelected = stepTarget == option.value
-                                Button { stepTarget = option.value } label: {
-                                    Text(option.label)
-                                        .font(.system(.caption, weight: isSelected ? .semibold : .regular))
-                                        .foregroundStyle(
-                                            isSelected
-                                                ? DesignSystem.Colors.background
-                                                : DesignSystem.Colors.secondaryText
-                                        )
-                                        .padding(.horizontal, DesignSystem.Spacing.sm)
-                                        .padding(.vertical, DesignSystem.Spacing.xs + 2)
-                                        .background(
-                                            isSelected
-                                                ? DesignSystem.Colors.accent
-                                                : DesignSystem.Colors.secondaryText.opacity(0.12)
-                                        )
-                                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm))
+                                HStack(spacing: DesignSystem.Spacing.xs) {
+                                    ForEach(dayOptions, id: \.weekday) { option in
+                                        let isSelected = selectedDays.contains(option.weekday)
+                                        Button {
+                                            if isSelected { selectedDays.remove(option.weekday) }
+                                            else { selectedDays.insert(option.weekday) }
+                                        } label: {
+                                            Text(option.label)
+                                                .font(.system(.caption, weight: isSelected ? .semibold : .regular))
+                                                .foregroundStyle(
+                                                    isSelected
+                                                        ? DesignSystem.Colors.background
+                                                        : DesignSystem.Colors.secondaryText
+                                                )
+                                                .padding(.horizontal, DesignSystem.Spacing.sm)
+                                                .padding(.vertical, DesignSystem.Spacing.xs + 2)
+                                                .background(
+                                                    isSelected
+                                                        ? DesignSystem.Colors.accent
+                                                        : DesignSystem.Colors.secondaryText.opacity(0.12)
+                                                )
+                                                .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        } else {
+                            // Once — start date picker
+                            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                                Text("Starting")
+                                    .font(.system(.subheadline))
+                                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+
+                                let todayStr = Date().dateString
+                                let tomorrowStr = Calendar.current.date(byAdding: .day, value: 1, to: Date())!.dateString
+                                let isCustom = showingDatePicker || (onceStartDate != todayStr && onceStartDate != tomorrowStr)
+
+                                let customLabel: String = {
+                                    guard isCustom, !showingDatePicker,
+                                          let d = Date.from(dateString: onceStartDate) else { return "Pick date" }
+                                    let f = DateFormatter()
+                                    f.dateFormat = "MMM d"
+                                    f.locale = Locale(identifier: "en_US_POSIX")
+                                    return f.string(from: d)
+                                }()
+
+                                HStack(spacing: DesignSystem.Spacing.xs) {
+                                    startChip("Today",    selected: !isCustom && onceStartDate == todayStr)    { onceStartDate = todayStr;    showingDatePicker = false }
+                                    startChip("Tomorrow", selected: !isCustom && onceStartDate == tomorrowStr) { onceStartDate = tomorrowStr; showingDatePicker = false }
+                                    startChip(customLabel, selected: isCustom) { showingDatePicker = isCustom ? !showingDatePicker : true }
+                                }
+
+                                if isCustom && showingDatePicker {
+                                    DatePicker("", selection: $pickerDate, in: Date()..., displayedComponents: .date)
+                                        .datePickerStyle(.graphical)
+                                        .tint(DesignSystem.Colors.accent)
+                                        .onChange(of: pickerDate) { _, newDate in
+                                            onceStartDate = newDate.dateString
+                                            showingDatePicker = false
+                                        }
+                                }
+                            }
+                        }
+
+                        // Step goal toggle + chips — hidden if HealthKit unavailable
+                        if viewModel.isHealthKitAvailable {
+                            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                                Toggle(isOn: $hasStepGoal) {
+                                    Text("Step goal")
+                                        .font(.system(.body))
+                                        .foregroundStyle(DesignSystem.Colors.primaryText)
+                                }
+                                .tint(DesignSystem.Colors.accent)
+
+                                Text("Auto-completes task with steps")
+                                    .font(.system(.caption))
+                                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+                            }
+
+                            if hasStepGoal {
+                                HStack(spacing: DesignSystem.Spacing.xs) {
+                                    ForEach(stepOptions, id: \.value) { option in
+                                        let isSelected = stepTarget == option.value
+                                        Button { stepTarget = option.value } label: {
+                                            Text(option.label)
+                                                .font(.system(.caption, weight: isSelected ? .semibold : .regular))
+                                                .foregroundStyle(
+                                                    isSelected
+                                                        ? DesignSystem.Colors.background
+                                                        : DesignSystem.Colors.secondaryText
+                                                )
+                                                .padding(.horizontal, DesignSystem.Spacing.sm)
+                                                .padding(.vertical, DesignSystem.Spacing.xs + 2)
+                                                .background(
+                                                    isSelected
+                                                        ? DesignSystem.Colors.accent
+                                                        : DesignSystem.Colors.secondaryText.opacity(0.12)
+                                                )
+                                                .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Location toggle + search
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                            Toggle(isOn: $hasLocation) {
+                                Text("Location")
+                                    .font(.system(.body))
+                                    .foregroundStyle(DesignSystem.Colors.primaryText)
+                            }
+                            .tint(DesignSystem.Colors.accent)
+                            .onChange(of: hasLocation) { _, on in
+                                if on {
+                                    let status = LocationVerificationService.shared.authorizationStatus
+                                    if status == .denied || status == .restricted {
+                                        showLocationDeniedHint = true
+                                        hasLocation = false
+                                    } else {
+                                        showLocationDeniedHint = false
+                                        if status == .notDetermined {
+                                            LocationVerificationService.shared.requestAlwaysAuthorization()
+                                        }
+                                    }
+                                } else if !showLocationDeniedHint {
+                                    selectedLocation = nil
+                                }
+                            }
+
+                            Text("Verifies you were there to complete")
+                                .font(.system(.caption))
+                                .foregroundStyle(DesignSystem.Colors.secondaryText)
+
+                            if showLocationDeniedHint {
+                                Button {
+                                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                } label: {
+                                    Text("Location access required. Open Settings →")
+                                        .font(.system(.caption))
+                                        .foregroundStyle(DesignSystem.Colors.overdue)
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
-                    }
-                }
 
-                // Blocks Apps toggle + optional start time
-                Toggle(isOn: $blocksApps) {
-                    Text("Blocks Apps")
-                        .font(.system(.body))
-                        .foregroundStyle(DesignSystem.Colors.primaryText)
-                }
-                .tint(DesignSystem.Colors.accent)
-                .onChange(of: blocksApps) { _, on in
-                    if !on { blockingStartTime = nil; showingStartTimePicker = false }
-                }
+                        if hasLocation {
+                            LocationSearchBar(selectedLocation: $selectedLocation)
+                        }
 
-                if blocksApps {
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                        HStack(spacing: DesignSystem.Spacing.xs) {
-                            Text("from")
-                                .font(.system(.caption))
-                                .foregroundStyle(DesignSystem.Colors.secondaryText)
-                            startChip("Start of Day", selected: blockingStartTime == nil) {
-                                blockingStartTime = nil
-                                showingStartTimePicker = false
-                            }
-                            startChip(blockingStartTime == nil ? "Set time" : formatStartTime(blockingStartTime!),
-                                      selected: blockingStartTime != nil) {
-                                if blockingStartTime == nil {
-                                    blockingStartTime = Calendar.current.dateComponents([.hour, .minute], from: startTimePicker)
+                        // Blocks Apps toggle + optional start time
+                        Toggle(isOn: $blocksApps) {
+                            Text("Blocks Apps")
+                                .font(.system(.body))
+                                .foregroundStyle(DesignSystem.Colors.primaryText)
+                        }
+                        .tint(DesignSystem.Colors.accent)
+                        .onChange(of: blocksApps) { _, on in
+                            if !on { blockingStartTime = nil; showingStartTimePicker = false }
+                        }
+
+                        if blocksApps {
+                            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                                HStack(spacing: DesignSystem.Spacing.xs) {
+                                    Text("from")
+                                        .font(.system(.caption))
+                                        .foregroundStyle(DesignSystem.Colors.secondaryText)
+                                    startChip("Start of Day", selected: blockingStartTime == nil) {
+                                        blockingStartTime = nil
+                                        showingStartTimePicker = false
+                                    }
+                                    startChip(blockingStartTime == nil ? "Set time" : formatStartTime(blockingStartTime!),
+                                              selected: blockingStartTime != nil) {
+                                        if blockingStartTime == nil {
+                                            blockingStartTime = Calendar.current.dateComponents([.hour, .minute], from: startTimePicker)
+                                        }
+                                        showingStartTimePicker.toggle()
+                                    }
                                 }
-                                showingStartTimePicker.toggle()
+                                if showingStartTimePicker {
+                                    DatePicker("", selection: $startTimePicker, displayedComponents: .hourAndMinute)
+                                        .datePickerStyle(.wheel)
+                                        .labelsHidden()
+                                        .tint(DesignSystem.Colors.accent)
+                                        .colorScheme(.dark)
+                                        .onChange(of: startTimePicker) { _, date in
+                                            blockingStartTime = Calendar.current.dateComponents([.hour, .minute], from: date)
+                                        }
+                                }
                             }
                         }
-                        if showingStartTimePicker {
-                            DatePicker("", selection: $startTimePicker, displayedComponents: .hourAndMinute)
-                                .datePickerStyle(.wheel)
-                                .labelsHidden()
-                                .tint(DesignSystem.Colors.accent)
-                                .colorScheme(.dark)
-                                .onChange(of: startTimePicker) { _, date in
-                                    blockingStartTime = Calendar.current.dateComponents([.hour, .minute], from: date)
-                                }
-                        }
                     }
+                    .padding(.horizontal, DesignSystem.Spacing.lg)
+                    .padding(.top, DesignSystem.Spacing.md)
+                    .padding(.bottom, DesignSystem.Spacing.xl)
                 }
-
-                // Add button
-                Button {
-                    guard !isSubmitting else { return }
-                    isSubmitting = true
-                    let recurrence: TaskRecurrence = repeats
-                        ? .weekly(days: selectedDays)
-                        : .once(startDate: onceStartDate)
-                    viewModel.addTask(
-                        title: title.trimmingCharacters(in: .whitespaces),
-                        recurrence: recurrence,
-                        blocksApps: blocksApps,
-                        stepTarget: hasStepGoal ? stepTarget : nil,
-                        blockingStartTime: blockingStartTime
-                    )
-                    dismiss()
-                } label: {
-                    Text("Add task")
-                        .font(.system(.body, weight: .medium))
-                        .foregroundStyle(canAdd ? DesignSystem.Colors.background : DesignSystem.Colors.secondaryText)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DesignSystem.Spacing.md)
-                        .background(canAdd ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText.opacity(0.2))
-                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md))
-                }
-                .disabled(!canAdd || isSubmitting)
-                .padding(.bottom, DesignSystem.Spacing.lg)
             }
-            .padding(.horizontal, DesignSystem.Spacing.lg)
-            .padding(.top, DesignSystem.Spacing.lg)
-        }
-        .presentationDetents([.medium, .large], selection: $selectedDetent)
-        .presentationDragIndicator(.visible)
-        .onChange(of: showingStartTimePicker) { _, showing in
-            withAnimation { selectedDetent = showing ? .large : .medium }
-        }
-        .onChange(of: showingDatePicker) { _, showing in
-            withAnimation { selectedDetent = showing ? .large : .medium }
         }
         .onAppear { titleFocused = true }
     }
@@ -291,4 +358,3 @@ struct AddTaskSheet: View {
         .buttonStyle(.plain)
     }
 }
-

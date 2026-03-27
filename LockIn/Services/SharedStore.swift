@@ -266,6 +266,49 @@ final class SharedStore {
         pendingFreezeOffer = false
     }
 
+    // MARK: - Location visits
+
+    /// [dateString] → set of task IDs whose location was visited on that date.
+    var locationVisits: [String: Set<UUID>] {
+        get {
+            guard
+                let data = defaults.data(forKey: Keys.locationVisits),
+                let decoded = try? JSONDecoder().decode([String: Set<UUID>].self, from: data)
+            else { return [:] }
+            return decoded
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue) else { return }
+            defaults.set(data, forKey: Keys.locationVisits)
+            defaults.synchronize()
+        }
+    }
+
+    func logLocationVisit(taskID: UUID, on date: String) {
+        var log = locationVisits
+        var set = log[date, default: Set<UUID>()]
+        set.insert(taskID)
+        log[date] = set
+        // Prune entries older than 30 days to prevent unbounded UserDefaults growth
+        if let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) {
+            let cutoffString = cutoff.dateString
+            log = log.filter { $0.key >= cutoffString }
+        }
+        locationVisits = log
+    }
+
+    func hasVisitedLocation(taskID: UUID, on date: String) -> Bool {
+        locationVisits[date]?.contains(taskID) ?? false
+    }
+
+    var hasPromptedLocationAlways: Bool {
+        get { defaults.bool(forKey: Keys.hasPromptedLocationAlways) }
+        set {
+            defaults.set(newValue, forKey: Keys.hasPromptedLocationAlways)
+            defaults.synchronize()
+        }
+    }
+
     // MARK: - Init
 
     private let defaults: UserDefaults
@@ -527,7 +570,8 @@ final class SharedStore {
                     originalDay: nil,
                     scheduledDateString: todayString,
                     isOnce: false,
-                    stepTarget: task.stepTarget
+                    stepTarget: task.stepTarget,
+                    location: task.location
                 ))
             }
         }
@@ -553,7 +597,8 @@ final class SharedStore {
                     originalDay: pastDate.weekdayName,
                     scheduledDateString: pastString,
                     isOnce: false,
-                    stepTarget: task.stepTarget
+                    stepTarget: task.stepTarget,
+                    location: task.location
                 ))
             }
         }
@@ -585,7 +630,8 @@ final class SharedStore {
                 originalDay: originalDay,
                 scheduledDateString: todayString, // always log on today
                 isOnce: true,
-                stepTarget: task.stepTarget
+                stepTarget: task.stepTarget,
+                location: task.location
             ))
         }
 
@@ -664,5 +710,7 @@ final class SharedStore {
         static let streakFreezeCount = "streakFreezeCount"
         static let streakFreezeWeekString = "streakFreezeWeekString"
         static let frozenDate = "frozenDate"
+        static let locationVisits = "locationVisits"
+        static let hasPromptedLocationAlways = "hasPromptedLocationAlways"
     }
 }

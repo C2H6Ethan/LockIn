@@ -1,6 +1,7 @@
 import SwiftUI
 import FamilyControls
 import UserNotifications
+import CoreLocation
 
 struct OnboardingView: View {
 
@@ -24,6 +25,9 @@ struct OnboardingView: View {
     @State private var habitStartTimePicker = Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var habitHasStepGoal = false
     @State private var habitStepTarget: Int = 5_000
+    @State private var habitHasLocation = false
+    @State private var habitSelectedLocation: TaskLocation? = nil
+    @State private var habitLocationDenied = false
     @FocusState private var habitFieldFocused: Bool
 
     private let stepOptions: [(value: Int, label: String)] = [
@@ -395,6 +399,53 @@ struct OnboardingView: View {
                     }
                 }
 
+                // Location toggle
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                    Toggle(isOn: $habitHasLocation) {
+                        Text("Location")
+                            .font(.system(.body))
+                            .foregroundStyle(DesignSystem.Colors.primaryText)
+                    }
+                    .tint(DesignSystem.Colors.accent)
+                    .onChange(of: habitHasLocation) { _, on in
+                        if on {
+                            let status = LocationVerificationService.shared.authorizationStatus
+                            if status == .denied || status == .restricted {
+                                habitLocationDenied = true
+                                habitHasLocation = false
+                            } else {
+                                habitLocationDenied = false
+                                if status == .notDetermined {
+                                    LocationVerificationService.shared.requestAlwaysAuthorization()
+                                }
+                            }
+                        } else if !habitLocationDenied {
+                            habitSelectedLocation = nil
+                        }
+                    }
+
+                    Text("Verifies you were there to complete")
+                        .font(.system(.caption))
+                        .foregroundStyle(DesignSystem.Colors.secondaryText)
+
+                    if habitLocationDenied {
+                        Button {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            Text("Location access required. Open Settings →")
+                                .font(.system(.caption))
+                                .foregroundStyle(DesignSystem.Colors.overdue)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if habitHasLocation {
+                    LocationSearchBar(selectedLocation: $habitSelectedLocation)
+                }
+
                 // Blocks Apps toggle + optional start time
                 Toggle(isOn: $habitBlocksApps) {
                     Text("Blocks Apps")
@@ -519,7 +570,8 @@ struct OnboardingView: View {
                 recurrence: recurrence,
                 blocksApps: habitBlocksApps,
                 stepTarget: habitHasStepGoal ? habitStepTarget : nil,
-                blockingStartTime: habitBlockingStartTime
+                blockingStartTime: habitBlockingStartTime,
+                location: habitHasLocation ? habitSelectedLocation : nil
             ))
             BlockingService.shared.updateShieldsForCurrentHabitState()
             UINotificationFeedbackGenerator().notificationOccurred(.success)

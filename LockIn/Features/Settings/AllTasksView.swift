@@ -50,10 +50,10 @@ struct AllTasksView: View {
                 }
             }
         }
-        .sheet(item: $editingTask) { task in
+        .fullScreenCover(item: $editingTask) { task in
             EditTaskSheet(task: task, isLocked: viewModel.isLocked, viewModel: viewModel)
         }
-        .sheet(isPresented: $viewModel.showingAddTask) {
+        .fullScreenCover(isPresented: $viewModel.showingAddTask) {
             AddTaskSheet(viewModel: TodayViewModel())
         }
         .onAppear {
@@ -91,7 +91,15 @@ struct AllTasksView: View {
                     .font(.system(.body))
                     .foregroundStyle(DesignSystem.Colors.primaryText)
 
-                if let target = task.stepTarget {
+                if let locationName = task.location?.name {
+                    HStack(spacing: 3) {
+                        Image(systemName: "mappin")
+                            .font(.system(size: 9))
+                        Text(locationName)
+                            .font(.system(.caption2, weight: .medium))
+                    }
+                    .foregroundStyle(task.blocksApps ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText)
+                } else if let target = task.stepTarget {
                     let thousands = Double(target) / 1_000
                     let label = thousands.truncatingRemainder(dividingBy: 1) == 0
                         ? "\(Int(thousands))k steps"

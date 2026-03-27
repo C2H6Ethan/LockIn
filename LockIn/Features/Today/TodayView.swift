@@ -64,10 +64,6 @@ struct TodayView: View {
         .animation(.easeOut(duration: 0.25), value: viewModel.showUndoToast)
         .onChange(of: viewModel.undoTaskID) { _, newID in
             if newID != nil {
-                undoProgress = 1.0
-                withAnimation(.linear(duration: 4.0)) {
-                    undoProgress = 0.0
-                }
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             } else {
                 undoProgress = 1.0
@@ -98,7 +94,7 @@ struct TodayView: View {
             burstTrigger += 1
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         }
-        .sheet(isPresented: $viewModel.showingAddTask) {
+        .fullScreenCover(isPresented: $viewModel.showingAddTask) {
             AddTaskSheet(viewModel: viewModel)
         }
         .fullScreenCover(isPresented: Binding(
@@ -109,6 +105,13 @@ struct TodayView: View {
                 onUse: { viewModel.consumeFreeze() },
                 onDecline: { viewModel.declineFreeze() }
             )
+        }
+        .sheet(isPresented: $viewModel.showLocationUpgradePrompt) {
+            LocationUpgradeSheet(
+                onUpgrade: { viewModel.upgradeToAlwaysLocation() },
+                onDismiss: { viewModel.showLocationUpgradePrompt = false }
+            )
+            .presentationDetents([.medium])
         }
     }
 
@@ -177,7 +180,9 @@ struct TodayView: View {
                                 viewModel.completeTask(task)
                             }
                         },
-                        stepCount: task.stepTarget != nil ? viewModel.stepsToday : nil
+                        stepCount: task.stepTarget != nil ? viewModel.stepsToday : nil,
+                        locationVerificationFailed: viewModel.locationVerificationFailed == task.id,
+                        locationAlwaysAuthorized: task.location != nil && viewModel.locationAlwaysAuthorized
                     )
                     .id("incomplete-\(task.id)")
                     .padding(.horizontal, DesignSystem.Spacing.lg)
@@ -196,6 +201,12 @@ struct TodayView: View {
                         if viewModel.showUndoToast && viewModel.undoTaskID == task.id {
                             undoPill
                                 .transition(.scale.combined(with: .opacity))
+                                .onAppear {
+                                    undoProgress = 1.0
+                                    withAnimation(.linear(duration: 4.0)) {
+                                        undoProgress = 0.0
+                                    }
+                                }
                         }
                     }
                     .id("completed-\(task.id)")

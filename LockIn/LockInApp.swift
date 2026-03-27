@@ -64,6 +64,12 @@ struct LockInApp: App {
                         await requestFamilyControlsAuthorization()
                         SchedulingService.shared.scheduleDailyMonitorIfNeeded()
                         SchedulingService.shared.scheduleBlockingStartTimeMonitors(for: SharedStore.shared.tasks)
+                        // Register location geofences and start background monitoring
+                        let locationTasks = SharedStore.shared.buildTodayTasks().filter { $0.location != nil }
+                        if !locationTasks.isEmpty {
+                            await LocationVerificationService.shared.registerGeofences(for: locationTasks)
+                        }
+                        LocationVerificationService.shared.startMonitoringEventsOnce()
                     }
                 }
                 .onChange(of: scenePhase) { _, newPhase in

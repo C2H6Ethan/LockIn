@@ -1,5 +1,20 @@
 import Foundation
 
+/// Location attached to a task for verification.
+struct TaskLocation: Codable, Equatable {
+    let latitude: Double
+    let longitude: Double
+    let name: String          // "Planet Fitness", "Office", etc.
+    let radius: Double        // verification radius in meters, default 100
+
+    init(latitude: Double, longitude: Double, name: String, radius: Double = 100) {
+        self.latitude = latitude
+        self.longitude = longitude
+        self.name = name
+        self.radius = radius
+    }
+}
+
 /// Recurrence rule for a task.
 enum TaskRecurrence: Codable, Equatable {
     case weekly(days: Set<Int>)     // Calendar weekday: 1=Sun, 2=Mon … 7=Sat
@@ -17,6 +32,8 @@ struct Task: Codable, Identifiable, Equatable {
     var stepTarget: Int?
     /// When set, apps are only blocked after this time of day. nil = block all day.
     var blockingStartTime: DateComponents?
+    /// When set, task requires location verification to complete.
+    var location: TaskLocation?
 
     init(
         id: UUID = UUID(),
@@ -25,7 +42,8 @@ struct Task: Codable, Identifiable, Equatable {
         blocksApps: Bool = true,
         createdAt: Date = Date(),
         stepTarget: Int? = nil,
-        blockingStartTime: DateComponents? = nil
+        blockingStartTime: DateComponents? = nil,
+        location: TaskLocation? = nil
     ) {
         self.id = id
         self.title = title
@@ -34,6 +52,7 @@ struct Task: Codable, Identifiable, Equatable {
         self.createdAt = createdAt
         self.stepTarget = stepTarget
         self.blockingStartTime = blockingStartTime
+        self.location = location
     }
 
     /// Convenience initializer for weekly tasks — keeps existing call sites compiling.
@@ -44,7 +63,8 @@ struct Task: Codable, Identifiable, Equatable {
         blocksApps: Bool = true,
         createdAt: Date = Date(),
         stepTarget: Int? = nil,
-        blockingStartTime: DateComponents? = nil
+        blockingStartTime: DateComponents? = nil,
+        location: TaskLocation? = nil
     ) {
         self.id = id
         self.title = title
@@ -53,6 +73,7 @@ struct Task: Codable, Identifiable, Equatable {
         self.createdAt = createdAt
         self.stepTarget = stepTarget
         self.blockingStartTime = blockingStartTime
+        self.location = location
     }
 
     // MARK: - Computed helpers
@@ -88,6 +109,7 @@ struct TodayTask: Identifiable, Equatable {
     let scheduledDateString: String // date to log completion against
     let isOnce: Bool                // true for .once(startDate:) tasks
     let stepTarget: Int?            // non-nil for step goal tasks
+    let location: TaskLocation?     // non-nil for location-verified tasks
 
     init(
         id: UUID,
@@ -97,7 +119,8 @@ struct TodayTask: Identifiable, Equatable {
         originalDay: String?,
         scheduledDateString: String,
         isOnce: Bool = false,
-        stepTarget: Int? = nil
+        stepTarget: Int? = nil,
+        location: TaskLocation? = nil
     ) {
         self.id = id
         self.title = title
@@ -107,5 +130,6 @@ struct TodayTask: Identifiable, Equatable {
         self.scheduledDateString = scheduledDateString
         self.isOnce = isOnce
         self.stepTarget = stepTarget
+        self.location = location
     }
 }
