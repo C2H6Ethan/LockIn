@@ -84,6 +84,30 @@ final class SharedStore {
     }
 
     /// Snapshot of selectedApps taken at lock time. Used to enforce add-only behaviour while locked.
+    /// String-based domain list for custom URL blocking via `webContent.blockedByFilter`.
+    var selectedWebDomains: [String] {
+        get { defaults.stringArray(forKey: Keys.selectedWebDomains) ?? [] }
+        set {
+            defaults.set(newValue, forKey: Keys.selectedWebDomains)
+            defaults.synchronize()
+        }
+    }
+
+    var lockedWebDomains: [String]? {
+        get {
+            guard defaults.object(forKey: Keys.lockedWebDomains) != nil else { return nil }
+            return defaults.stringArray(forKey: Keys.lockedWebDomains)
+        }
+        set {
+            if let value = newValue {
+                defaults.set(value, forKey: Keys.lockedWebDomains)
+            } else {
+                defaults.removeObject(forKey: Keys.lockedWebDomains)
+            }
+            defaults.synchronize()
+        }
+    }
+
     var lockedAppTokens: FamilyActivitySelection? {
         get {
             guard
@@ -629,6 +653,8 @@ final class SharedStore {
         static let unblockExpiresAt = "unblockExpiresAt"
         static let lockExpiresAt = "lockExpiresAt"
         static let lockedAppTokens = "lockedAppTokens"
+        static let selectedWebDomains = "selectedWebDomains"
+        static let lockedWebDomains = "lockedWebDomains"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let bypassCountToday = "bypassCountToday"
         static let bypassCountDate = "bypassCountDate"

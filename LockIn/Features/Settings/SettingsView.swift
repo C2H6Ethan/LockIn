@@ -12,13 +12,13 @@ struct SettingsView: View {
             DesignSystem.Colors.background.ignoresSafeArea()
 
             List {
-                // MARK: Section 1 — Blocked Apps
+                // MARK: Section 1 — Blocked Apps & Websites
                 Section {
                     Button {
                         viewModel.showingAppPicker = true
                     } label: {
                         HStack {
-                            Text("Blocked Apps")
+                            Text("Blocked Apps & Websites")
                                 .foregroundStyle(DesignSystem.Colors.primaryText)
                             Spacer()
                             Text(viewModel.appSelectionSummary)
@@ -29,15 +29,46 @@ struct SettingsView: View {
                                 .foregroundStyle(DesignSystem.Colors.secondaryText)
                         }
                     }
-                    .familyActivityPicker(
-                        isPresented: $viewModel.showingAppPicker,
-                        selection: $pickerSelection
-                    )
+                    .familyActivityPicker(isPresented: $viewModel.showingAppPicker, selection: $pickerSelection)
                     .onChange(of: pickerSelection) { _, newValue in
                         viewModel.saveSelectedApps(newValue)
-                        // Sync back the enforced selection so the picker reflects
-                        // the actual stored state (add-only when locked).
                         pickerSelection = SharedStore.shared.selectedApps
+                    }
+                    .swipeActions(edge: .trailing) {
+                        if viewModel.selectedCount > 0 && !viewModel.isLocked {
+                            Button(role: .destructive) {
+                                viewModel.clearAllBlocked()
+                                pickerSelection = FamilyActivitySelection()
+                            } label: {
+                                Label("Clear", systemImage: "trash")
+                            }
+                        }
+                    }
+                }
+                .listRowBackground(DesignSystem.Colors.background)
+
+                // MARK: Section 1b — Block Custom Domains
+                Section {
+                    NavigationLink {
+                        BlockCustomURLsView(viewModel: viewModel)
+                    } label: {
+                        HStack {
+                            Text("Block Custom Domains")
+                                .foregroundStyle(DesignSystem.Colors.primaryText)
+                            Spacer()
+                            Text(viewModel.customDomainSummary)
+                                .font(.system(.subheadline))
+                                .foregroundStyle(DesignSystem.Colors.secondaryText)
+                        }
+                    }
+                    .swipeActions(edge: .trailing) {
+                        if !viewModel.customDomains.isEmpty && !viewModel.isLocked {
+                            Button(role: .destructive) {
+                                viewModel.clearCustomDomains()
+                            } label: {
+                                Label("Clear", systemImage: "trash")
+                            }
+                        }
                     }
                 }
                 .listRowBackground(DesignSystem.Colors.background)
@@ -55,6 +86,15 @@ struct SettingsView: View {
                             Text(count == 0 ? "No tasks" : "\(count) task\(count == 1 ? "" : "s")")
                                 .font(.system(.subheadline))
                                 .foregroundStyle(DesignSystem.Colors.secondaryText)
+                        }
+                    }
+                    .swipeActions(edge: .trailing) {
+                        if !viewModel.tasks.isEmpty && !viewModel.isLocked {
+                            Button(role: .destructive) {
+                                viewModel.deleteAllTasks()
+                            } label: {
+                                Label("Clear", systemImage: "trash")
+                            }
                         }
                     }
                 }
@@ -130,7 +170,6 @@ struct SettingsView: View {
             ReminderTimeSheet()
         }
         .onAppear {
-            pickerSelection = SharedStore.shared.selectedApps
             viewModel.onAppear()
         }
     }

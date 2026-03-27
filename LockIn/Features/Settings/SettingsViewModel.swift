@@ -8,7 +8,7 @@ final class SettingsViewModel {
     // MARK: - App picker state
 
     var showingAppPicker = false
-    private(set) var selectedAppsCount: Int
+    private(set) var selectedCount: Int
 
     // MARK: - Task management state
 
@@ -20,6 +20,10 @@ final class SettingsViewModel {
     var showingLockSheet = false
     private(set) var isLocked: Bool = false
     private(set) var lockExpiresAt: Date? = nil
+
+    // MARK: - Custom URL state
+
+    private(set) var customDomains: [String] = []
 
     // MARK: - Reminder state
 
@@ -36,7 +40,8 @@ final class SettingsViewModel {
     init(store: SharedStore = .shared, blocking: BlockingService = .shared) {
         self.store = store
         self.blocking = blocking
-        self.selectedAppsCount = store.selectedApps.applicationTokens.count
+        let sel = store.selectedApps
+        self.selectedCount = sel.applicationTokens.count + sel.webDomainTokens.count
         notificationObserver = NotificationCenter.default.addObserver(
             forName: .habitsDidChange,
             object: nil,
@@ -58,35 +63,88 @@ final class SettingsViewModel {
         sync()
     }
 
-    // MARK: - App picker actions
+    // MARK: - Picker actions
 
     func saveSelectedApps(_ selection: FamilyActivitySelection) {
+        // Strip category tokens only — app and web domain tokens both contribute to blocking.
+        var cleaned = selection
+        cleaned.categoryTokens = []
+
         if store.isLocked {
-            var enforced = selection
-            if let lockedTokens = store.lockedAppTokens {
-                enforced.applicationTokens = selection.applicationTokens.union(lockedTokens.applicationTokens)
-                enforced.webDomainTokens = selection.webDomainTokens.union(lockedTokens.webDomainTokens)
+            var enforced = cleaned
+            if let locked = store.lockedAppTokens {
+                enforced.applicationTokens = cleaned.applicationTokens.union(locked.applicationTokens)
+                enforced.webDomainTokens = cleaned.webDomainTokens.union(locked.webDomainTokens)
             }
             store.selectedApps = enforced
-            store.lockedAppTokens = enforced  // grow snapshot to include newly added apps
-            selectedAppsCount = enforced.applicationTokens.count
+            store.lockedAppTokens = enforced
+            selectedCount = enforced.applicationTokens.count + enforced.webDomainTokens.count
         } else {
-            store.selectedApps = selection
-            selectedAppsCount = selection.applicationTokens.count
+            store.selectedApps = cleaned
+            selectedCount = cleaned.applicationTokens.count + cleaned.webDomainTokens.count
         }
         blocking.updateShieldsForCurrentHabitState()
     }
 
     var appSelectionSummary: String {
-        if selectedAppsCount == 0 { return "No apps selected" }
-        return "\(selectedAppsCount) app\(selectedAppsCount == 1 ? "" : "s") selected"
+        selectedCount == 0 ? "None" : "\(selectedCount) selected"
+    }
+
+    func clearAllBlocked() {
+        store.selectedApps = FamilyActivitySelection()
+        store.lockedAppTokens = nil
+        selectedCount = 0
+        blocking.updateShieldsForCurrentHabitState()
+    }
+
+    // MARK: - Custom URL actions
+
+    var customDomainSummary: String {
+        customDomains.isEmpty ? "None" : "\(customDomains.count) domain\(customDomains.count == 1 ? "" : "s")"
+    }
+
+    func addCustomDomain(_ raw: String) {
+        var domain = raw.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        // Strip scheme
+        for scheme in ["https://", "http://"] {
+            if domain.hasPrefix(scheme) { domain = String(domain.dropFirst(scheme.count)) }
+        }
+        // Strip www. prefix only (not mid-string)
+        if domain.hasPrefix("www.") { domain = String(domain.dropFirst(4)) }
+        // Strip path component
+        if let slashIndex = domain.firstIndex(of: "/") { domain = String(domain[domain.startIndex..<slashIndex]) }
+        guard !domain.isEmpty, !customDomains.contains(domain), customDomains.count < 50 else { return }
+        var domains = store.selectedWebDomains
+        domains.append(domain)
+        store.selectedWebDomains = domains
+        if store.isLocked { store.lockedWebDomains = domains }
+        blocking.updateShieldsForCurrentHabitState()
+        sync()
+    }
+
+    func removeCustomDomain(_ domain: String) {
+        guard !store.isLocked else { return }
+        var domains = store.selectedWebDomains
+        domains.removeAll { $0 == domain }
+        store.selectedWebDomains = domains
+        blocking.updateShieldsForCurrentHabitState()
+        sync()
+    }
+
+    func clearCustomDomains() {
+        guard !store.isLocked else { return }
+        store.selectedWebDomains = []
+        store.lockedWebDomains = nil
+        blocking.updateShieldsForCurrentHabitState()
+        sync()
     }
 
     // MARK: - Lock actions
 
     func activateLock(days: Int) {
         store.lockExpiresAt = Calendar.current.date(byAdding: .day, value: days, to: Date())
-        store.lockedAppTokens = store.selectedApps
+        store.lockedAppTokens = store.selectedApps  // snapshot includes app + web tokens
+        store.lockedWebDomains = store.selectedWebDomains
         sync()
     }
 
@@ -98,6 +156,16 @@ final class SettingsViewModel {
     }
 
     // MARK: - Task actions
+
+    func deleteAllTasks() {
+        for task in store.tasks {
+            store.removeTask(id: task.id)
+        }
+        blocking.updateShieldsForCurrentHabitState()
+        NotificationCenter.default.post(name: .habitsDidChange, object: nil)
+        ActivityLog.log("ALL_TASKS_DELETED")
+        sync()
+    }
 
     func deleteTask(id: UUID) {
         let title = store.tasks.first(where: { $0.id == id })?.title ?? "unknown"
@@ -125,11 +193,9 @@ final class SettingsViewModel {
 
     private func sync() {
         tasks = store.tasks.sorted { a, b in
-            // Weekly tasks sort first (by earliest weekday), once tasks sort last (by start date)
             let aIdx = weekdayOrder.firstIndex(where: { a.activeDays.contains($0) }) ?? Int.max
             let bIdx = weekdayOrder.firstIndex(where: { b.activeDays.contains($0) }) ?? Int.max
             if aIdx != bIdx { return aIdx < bIdx }
-            // Both once tasks: sort by start date then alphabetically
             if a.isOnce && b.isOnce {
                 let aDate = a.onceStartDate ?? ""
                 let bDate = b.onceStartDate ?? ""
@@ -137,9 +203,11 @@ final class SettingsViewModel {
             }
             return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
         }
-        selectedAppsCount = store.selectedApps.applicationTokens.count
+        let sel = store.selectedApps
+        selectedCount = sel.applicationTokens.count + sel.webDomainTokens.count
         isLocked = store.isLocked
         lockExpiresAt = store.lockExpiresAt
+        customDomains = store.selectedWebDomains
         reminderSummary = Self.formatReminderTime(store.dailyReminderTime)
     }
 

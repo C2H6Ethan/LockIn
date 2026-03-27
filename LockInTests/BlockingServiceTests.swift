@@ -7,8 +7,12 @@ import FamilyControls
 final class MockShieldApplier: ShieldApplying {
     private(set) var applyCallCount = 0
     private(set) var removeCallCount = 0
+    private(set) var lastCustomDomains: [String] = []
 
-    func apply(selection: FamilyActivitySelection) { applyCallCount += 1 }
+    func apply(selection: FamilyActivitySelection, customDomains: [String]) {
+        applyCallCount += 1
+        lastCustomDomains = customDomains
+    }
     func remove() { removeCallCount += 1 }
 }
 
@@ -152,5 +156,86 @@ final class BlockingServiceTests: XCTestCase {
 
         sut.updateShieldsForCurrentHabitState()
         XCTAssertEqual(mockApplier.removeCallCount, 2)
+    }
+
+    // MARK: - Custom domain blocking
+
+    func testUpdateShields_customDomainsOnly_incompleteBlockingTask_appliesShields() {
+        let today = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Exercise", activeDays: [today], blocksApps: true))
+        store.selectedWebDomains = ["reddit.com"]
+
+        sut.updateShieldsForCurrentHabitState()
+
+        XCTAssertEqual(mockApplier.applyCallCount, 1)
+        XCTAssertEqual(mockApplier.lastCustomDomains, ["reddit.com"])
+    }
+
+    func testUpdateShields_customDomains_noBlockingTasks_removesShields() {
+        store.selectedWebDomains = ["reddit.com"]
+
+        sut.updateShieldsForCurrentHabitState()
+
+        XCTAssertEqual(mockApplier.removeCallCount, 1)
+        XCTAssertEqual(mockApplier.applyCallCount, 0)
+    }
+
+    func testUpdateShields_customDomains_allTasksComplete_removesShields() {
+        let today = Calendar.current.component(.weekday, from: Date())
+        let task = Task(title: "Exercise", activeDays: [today], blocksApps: true)
+        store.addTask(task)
+        store.completeTask(task.id, on: Date().dateString)
+        store.selectedWebDomains = ["reddit.com"]
+
+        sut.updateShieldsForCurrentHabitState()
+
+        XCTAssertEqual(mockApplier.removeCallCount, 1)
+        XCTAssertEqual(mockApplier.applyCallCount, 0)
+    }
+
+    func testUpdateShields_customDomains_bypassActive_noOp() {
+        let today = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Exercise", activeDays: [today], blocksApps: true))
+        store.selectedWebDomains = ["reddit.com"]
+        store.unblockExpiresAt = Date().addingTimeInterval(60)
+
+        sut.updateShieldsForCurrentHabitState()
+
+        XCTAssertEqual(mockApplier.applyCallCount, 0)
+        XCTAssertEqual(mockApplier.removeCallCount, 0)
+    }
+
+    func testUpdateShields_multipleCustomDomains_allPassedToApplier() {
+        let today = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Exercise", activeDays: [today], blocksApps: true))
+        store.selectedWebDomains = ["reddit.com", "youtube.com", "twitter.com"]
+
+        sut.updateShieldsForCurrentHabitState()
+
+        XCTAssertEqual(mockApplier.applyCallCount, 1)
+        XCTAssertEqual(Set(mockApplier.lastCustomDomains), ["reddit.com", "youtube.com", "twitter.com"])
+    }
+
+    func testUpdateShields_customDomains_expiredBypass_clearsExpiryAndApplies() {
+        let today = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Exercise", activeDays: [today], blocksApps: true))
+        store.selectedWebDomains = ["reddit.com"]
+        store.unblockExpiresAt = Date().addingTimeInterval(-1)
+
+        sut.updateShieldsForCurrentHabitState()
+
+        XCTAssertNil(store.unblockExpiresAt)
+        XCTAssertEqual(mockApplier.applyCallCount, 1)
+    }
+
+    func testUpdateShields_noAppsNoDomainsNoCustom_incompleteTask_removesShields() {
+        let today = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Exercise", activeDays: [today], blocksApps: true))
+        // nothing selected
+
+        sut.updateShieldsForCurrentHabitState()
+
+        XCTAssertEqual(mockApplier.removeCallCount, 1)
+        XCTAssertEqual(mockApplier.applyCallCount, 0)
     }
 }

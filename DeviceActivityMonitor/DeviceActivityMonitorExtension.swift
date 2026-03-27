@@ -41,13 +41,26 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         if let expires = store.unblockExpiresAt, expires > Date() { return }
 
         let selection = store.selectedApps
+        let customDomains = store.selectedWebDomains
         let hasApps = !selection.applicationTokens.isEmpty
+        let hasDomains = !selection.webDomainTokens.isEmpty
+        let hasCustomDomains = !customDomains.isEmpty
         let hasIncomplete = !store.incompleteBlockingTasks.isEmpty
 
-        if hasIncomplete && hasApps {
-            managedStore.shield.applications = selection.applicationTokens
+        if hasIncomplete && (hasApps || hasDomains || hasCustomDomains) {
+            let appTokens = selection.applicationTokens
+            managedStore.shield.applications = appTokens.isEmpty ? nil : appTokens
+            let webTokens = selection.webDomainTokens
+            managedStore.shield.webDomains = webTokens.isEmpty ? nil : webTokens
+            if customDomains.isEmpty {
+                managedStore.webContent.blockedByFilter = nil
+            } else {
+                managedStore.webContent.blockedByFilter = .specific(Set(customDomains.map { WebDomain(domain: $0) }))
+            }
         } else {
             managedStore.shield.applications = nil
+            managedStore.shield.webDomains = nil
+            managedStore.webContent.blockedByFilter = nil
         }
     }
 

@@ -26,12 +26,12 @@ final class SettingsViewModelTests: XCTestCase {
 
     // MARK: - selectedAppsCount + appSelectionSummary
 
-    func testSelectedAppsCount_defaultsToZero() {
-        XCTAssertEqual(sut.selectedAppsCount, 0)
+    func testSelectedCount_defaultsToZero() {
+        XCTAssertEqual(sut.selectedCount, 0)
     }
 
-    func testAppSelectionSummary_noApps_returnsNoneText() {
-        XCTAssertEqual(sut.appSelectionSummary, "No apps selected")
+    func testAppSelectionSummary_noApps_returnsNone() {
+        XCTAssertEqual(sut.appSelectionSummary, "None")
     }
 
     // MARK: - tasks
@@ -235,6 +235,166 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     // MARK: - Notification-driven sync
+
+    // MARK: - Custom domain management
+
+    func testAddCustomDomain_addsToStore() {
+        sut.addCustomDomain("reddit.com")
+        XCTAssertEqual(store.selectedWebDomains, ["reddit.com"])
+    }
+
+    func testAddCustomDomain_updatesViewModel() {
+        sut.addCustomDomain("reddit.com")
+        XCTAssertEqual(sut.customDomains, ["reddit.com"])
+    }
+
+    func testAddCustomDomain_stripsHttps() {
+        sut.addCustomDomain("https://reddit.com")
+        XCTAssertEqual(store.selectedWebDomains, ["reddit.com"])
+    }
+
+    func testAddCustomDomain_stripsHttp() {
+        sut.addCustomDomain("http://reddit.com")
+        XCTAssertEqual(store.selectedWebDomains, ["reddit.com"])
+    }
+
+    func testAddCustomDomain_stripsWwwPrefix() {
+        sut.addCustomDomain("www.reddit.com")
+        XCTAssertEqual(store.selectedWebDomains, ["reddit.com"])
+    }
+
+    func testAddCustomDomain_stripsHttpsAndWww() {
+        sut.addCustomDomain("https://www.reddit.com")
+        XCTAssertEqual(store.selectedWebDomains, ["reddit.com"])
+    }
+
+    func testAddCustomDomain_wwwMidDomain_notCorrupted() {
+        // "awesome-www.io" should not be mangled — www. only stripped as a prefix
+        sut.addCustomDomain("awesome-www.io")
+        XCTAssertEqual(store.selectedWebDomains, ["awesome-www.io"])
+    }
+
+    func testAddCustomDomain_stripsPathComponent() {
+        sut.addCustomDomain("reddit.com/r/programming")
+        XCTAssertEqual(store.selectedWebDomains, ["reddit.com"])
+    }
+
+    func testAddCustomDomain_stripsFullUrlWithPath() {
+        sut.addCustomDomain("https://www.reddit.com/r/programming")
+        XCTAssertEqual(store.selectedWebDomains, ["reddit.com"])
+    }
+
+    func testAddCustomDomain_lowercases() {
+        sut.addCustomDomain("Reddit.COM")
+        XCTAssertEqual(store.selectedWebDomains, ["reddit.com"])
+    }
+
+    func testAddCustomDomain_deduplicates() {
+        sut.addCustomDomain("reddit.com")
+        sut.addCustomDomain("reddit.com")
+        XCTAssertEqual(store.selectedWebDomains.count, 1)
+    }
+
+    func testAddCustomDomain_emptyString_ignored() {
+        sut.addCustomDomain("")
+        XCTAssertTrue(store.selectedWebDomains.isEmpty)
+    }
+
+    func testAddCustomDomain_whitespaceOnly_ignored() {
+        sut.addCustomDomain("   ")
+        XCTAssertTrue(store.selectedWebDomains.isEmpty)
+    }
+
+    func testAddCustomDomain_enforcesLimit() {
+        for i in 0..<50 {
+            sut.addCustomDomain("domain\(i).com")
+        }
+        sut.addCustomDomain("overflow.com")
+        XCTAssertEqual(store.selectedWebDomains.count, 50)
+        XCTAssertFalse(store.selectedWebDomains.contains("overflow.com"))
+    }
+
+    func testAddCustomDomain_triggersBlocking() {
+        let today = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Exercise", activeDays: [today], blocksApps: true))
+        sut.addCustomDomain("reddit.com")
+        XCTAssertEqual(mockApplier.applyCallCount, 1)
+    }
+
+    func testRemoveCustomDomain_removesFromStore() {
+        store.selectedWebDomains = ["reddit.com", "youtube.com"]
+        sut.onAppear()
+        sut.removeCustomDomain("reddit.com")
+        XCTAssertEqual(store.selectedWebDomains, ["youtube.com"])
+    }
+
+    func testRemoveCustomDomain_updatesViewModel() {
+        store.selectedWebDomains = ["reddit.com", "youtube.com"]
+        sut.onAppear()
+        sut.removeCustomDomain("reddit.com")
+        XCTAssertEqual(sut.customDomains, ["youtube.com"])
+    }
+
+    func testRemoveCustomDomain_whileLocked_ignored() {
+        store.selectedWebDomains = ["reddit.com"]
+        store.lockExpiresAt = Calendar.current.date(byAdding: .day, value: 1, to: Date())
+        sut.onAppear()
+        sut.removeCustomDomain("reddit.com")
+        XCTAssertEqual(store.selectedWebDomains, ["reddit.com"])
+    }
+
+    func testClearCustomDomains_clearsAll() {
+        store.selectedWebDomains = ["reddit.com", "youtube.com"]
+        sut.onAppear()
+        sut.clearCustomDomains()
+        XCTAssertTrue(store.selectedWebDomains.isEmpty)
+        XCTAssertTrue(sut.customDomains.isEmpty)
+    }
+
+    func testClearCustomDomains_clearsLockedSnapshot() {
+        store.selectedWebDomains = ["reddit.com"]
+        store.lockedWebDomains = ["reddit.com"]
+        sut.clearCustomDomains()
+        XCTAssertNil(store.lockedWebDomains)
+    }
+
+    func testClearCustomDomains_whileLocked_ignored() {
+        store.selectedWebDomains = ["reddit.com"]
+        store.lockExpiresAt = Calendar.current.date(byAdding: .day, value: 1, to: Date())
+        sut.onAppear()
+        sut.clearCustomDomains()
+        XCTAssertEqual(store.selectedWebDomains, ["reddit.com"])
+    }
+
+    func testCustomDomainSummary_empty_returnsNone() {
+        XCTAssertEqual(sut.customDomainSummary, "None")
+    }
+
+    func testCustomDomainSummary_one_returnsSingular() {
+        sut.addCustomDomain("reddit.com")
+        XCTAssertEqual(sut.customDomainSummary, "1 domain")
+    }
+
+    func testCustomDomainSummary_many_returnsPlural() {
+        sut.addCustomDomain("reddit.com")
+        sut.addCustomDomain("youtube.com")
+        XCTAssertEqual(sut.customDomainSummary, "2 domains")
+    }
+
+    func testActivateLock_snapshotsCustomDomains() {
+        store.selectedWebDomains = ["reddit.com", "youtube.com"]
+        sut.activateLock(days: 3)
+        XCTAssertEqual(store.lockedWebDomains, ["reddit.com", "youtube.com"])
+    }
+
+    func testAddCustomDomain_whileLocked_snapshotsUpdated() {
+        store.selectedWebDomains = ["reddit.com"]
+        store.lockedWebDomains = ["reddit.com"]
+        store.lockExpiresAt = Calendar.current.date(byAdding: .day, value: 1, to: Date())
+        sut.onAppear()
+        sut.addCustomDomain("youtube.com")
+        XCTAssertEqual(store.lockedWebDomains?.sorted(), ["reddit.com", "youtube.com"].sorted())
+    }
 
     func testHabitsDidChange_notification_reloadsTasks() async {
         sut.onAppear()

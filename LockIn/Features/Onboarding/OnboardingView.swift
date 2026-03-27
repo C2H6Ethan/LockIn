@@ -64,7 +64,10 @@ struct OnboardingView: View {
         }
         .familyActivityPicker(isPresented: $showingPicker, selection: $selection)
         .onChange(of: selection) {
-            SharedStore.shared.selectedApps = selection
+            // Strip category tokens only — app and web domain tokens both contribute to blocking.
+            var cleaned = selection
+            cleaned.categoryTokens = []
+            SharedStore.shared.selectedApps = cleaned
             BlockingService.shared.updateShieldsForCurrentHabitState()
         }
         .onChange(of: scenePhase) { _, newPhase in

@@ -6,7 +6,7 @@ import UserNotifications
 // MARK: - Protocol (enables test injection)
 
 protocol ShieldApplying {
-    func apply(selection: FamilyActivitySelection)
+    func apply(selection: FamilyActivitySelection, customDomains: [String])
     func remove()
 }
 
@@ -15,13 +15,22 @@ protocol ShieldApplying {
 final class ManagedSettingsShieldApplier: ShieldApplying {
     private lazy var managedStore = ManagedSettingsStore()
 
-    func apply(selection: FamilyActivitySelection) {
-        let tokens = selection.applicationTokens
-        managedStore.shield.applications = tokens.isEmpty ? nil : tokens
+    func apply(selection: FamilyActivitySelection, customDomains: [String]) {
+        let appTokens = selection.applicationTokens
+        managedStore.shield.applications = appTokens.isEmpty ? nil : appTokens
+        let webTokens = selection.webDomainTokens
+        managedStore.shield.webDomains = webTokens.isEmpty ? nil : webTokens
+        if customDomains.isEmpty {
+            managedStore.webContent.blockedByFilter = nil
+        } else {
+            managedStore.webContent.blockedByFilter = .specific(Set(customDomains.map { WebDomain(domain: $0) }))
+        }
     }
 
     func remove() {
         managedStore.shield.applications = nil
+        managedStore.shield.webDomains = nil
+        managedStore.webContent.blockedByFilter = nil
     }
 }
 
@@ -52,10 +61,13 @@ final class BlockingService {
 
         let blocking = store.incompleteBlockingTasks
         let selection = store.selectedApps
+        let customDomains = store.selectedWebDomains
         let hasApps = !selection.applicationTokens.isEmpty
+        let hasDomains = !selection.webDomainTokens.isEmpty
+        let hasCustomDomains = !customDomains.isEmpty
 
-        if !blocking.isEmpty && hasApps {
-            applier.apply(selection: selection)
+        if !blocking.isEmpty && (hasApps || hasDomains || hasCustomDomains) {
+            applier.apply(selection: selection, customDomains: customDomains)
         } else {
             applier.remove()
         }
