@@ -1,5 +1,4 @@
 import CoreLocation
-import UserNotifications
 
 // MARK: - Protocol (enables test injection)
 
@@ -51,19 +50,49 @@ final class LocationVerificationService: NSObject, LocationVerifying {
     /// conditions that may have been cleared by a device reboot).
     func registerGeofences(for tasks: [TodayTask]) async {
         let mon = await getMonitor()
-        for task in tasks {
-            guard let loc = task.location else { continue }
-            let condition = CLMonitor.CircularGeographicCondition(
-                center: CLLocationCoordinate2D(latitude: loc.latitude, longitude: loc.longitude),
-                radius: loc.radius
-            )
-            await mon.add(condition, identifier: task.id.uuidString)
+        let locationTasks = tasks.filter { $0.location != nil }
+        for task in locationTasks {
+            let loc = task.location!
+            let identifier = task.id.uuidString
+            let center = CLLocationCoordinate2D(latitude: loc.latitude, longitude: loc.longitude)
+
+            // CLMonitor — foreground/active background delivery
+            let condition = CLMonitor.CircularGeographicCondition(center: center, radius: loc.radius)
+            await mon.add(condition, identifier: identifier)
+
+            // CLCircularRegion — wakes app from terminated state (no persistent indicator)
+            guard !locationManager.monitoredRegions.contains(where: { $0.identifier == identifier }) else { continue }
+            let region = CLCircularRegion(center: center, radius: loc.radius, identifier: identifier)
+            region.notifyOnEntry = true
+            region.notifyOnExit = false
+            locationManager.startMonitoring(for: region)
+        }
+
+        // Check if already inside any location task's region — iOS won't fire
+        // an entry event for regions you're already in when monitoring starts.
+        // Log the visit silently (no notification since the user is in-app).
+        if !locationTasks.isEmpty,
+           let current = await requestCurrentLocation() {
+            let today = Date().dateString
+            for task in locationTasks {
+                let loc = task.location!
+                let target = CLLocation(latitude: loc.latitude, longitude: loc.longitude)
+                if current.distance(from: target) <= loc.radius {
+                    await MainActor.run {
+                        SharedStore.shared.logLocationVisit(taskID: task.id, on: today)
+                    }
+                }
+            }
         }
     }
 
     func removeGeofence(for taskID: UUID) async {
+        let identifier = taskID.uuidString
         let mon = await getMonitor()
-        await mon.remove(taskID.uuidString)
+        await mon.remove(identifier)
+        if let region = locationManager.monitoredRegions.first(where: { $0.identifier == identifier }) {
+            locationManager.stopMonitoring(for: region)
+        }
     }
 
     /// Start the CLMonitor event loop exactly once. Subsequent calls are no-ops.
@@ -84,14 +113,10 @@ final class LocationVerificationService: NSObject, LocationVerifying {
                 guard case .satisfied = event.state else { continue }
                 guard let taskID = UUID(uuidString: event.identifier) else { continue }
                 let today = Date().dateString
-                let alreadyVisited = await MainActor.run {
-                    SharedStore.shared.hasVisitedLocation(taskID: taskID, on: today)
-                }
+                // Log visit only — didEnterRegion handles notifications reliably
+                // in foreground, background, and terminated states.
                 await MainActor.run {
                     SharedStore.shared.logLocationVisit(taskID: taskID, on: today)
-                }
-                if !alreadyVisited {
-                    await sendArrivalNotification(for: taskID)
                 }
             }
         } catch {
@@ -141,22 +166,6 @@ final class LocationVerificationService: NSObject, LocationVerifying {
         return m
     }
 
-    // MARK: - Notifications
-
-    private func sendArrivalNotification(for taskID: UUID) async {
-        let task = await MainActor.run { SharedStore.shared.tasks.first { $0.id == taskID } }
-        guard let task, let locationName = task.location?.name else { return }
-        let content = UNMutableNotificationContent()
-        content.title = "You're at \(locationName)"
-        content.body = "Complete your task: \(task.title)"
-        content.sound = .default
-        let request = UNNotificationRequest(
-            identifier: "location-arrival-\(taskID)",
-            content: content,
-            trigger: nil
-        )
-        try? await UNUserNotificationCenter.current().add(request)
-    }
 }
 
 // MARK: - CLLocationManagerDelegate
@@ -170,5 +179,11 @@ extension LocationVerificationService: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         locationContinuation?.resume(returning: nil)
         locationContinuation = nil
+    }
+
+    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        guard let taskID = UUID(uuidString: region.identifier) else { return }
+        let store = SharedStore(suiteName: Constants.AppGroup.id)
+        store.logLocationVisit(taskID: taskID, on: Date().dateString)
     }
 }

@@ -5,9 +5,9 @@ struct TaskLocation: Codable, Equatable {
     let latitude: Double
     let longitude: Double
     let name: String          // "Planet Fitness", "Office", etc.
-    let radius: Double        // verification radius in meters, default 100
+    let radius: Double        // verification radius in meters, default 200
 
-    init(latitude: Double, longitude: Double, name: String, radius: Double = 100) {
+    init(latitude: Double, longitude: Double, name: String, radius: Double = 200) {
         self.latitude = latitude
         self.longitude = longitude
         self.name = name

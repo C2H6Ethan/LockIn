@@ -8,6 +8,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        // Force-initialize so CLLocationManager delegate is set before iOS delivers
+        // any pending region events on background relaunch.
+        _ = LocationVerificationService.shared
         return true
     }
 
@@ -68,8 +71,8 @@ struct LockInApp: App {
                         let locationTasks = SharedStore.shared.buildTodayTasks().filter { $0.location != nil }
                         if !locationTasks.isEmpty {
                             await LocationVerificationService.shared.registerGeofences(for: locationTasks)
+                            LocationVerificationService.shared.startMonitoringEventsOnce()
                         }
-                        LocationVerificationService.shared.startMonitoringEventsOnce()
                     }
                 }
                 .onChange(of: scenePhase) { _, newPhase in

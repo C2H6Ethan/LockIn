@@ -60,22 +60,52 @@ struct LocationSearchBar: View {
     @Binding var selectedLocation: TaskLocation?
     @State private var searchVM = LocationSearchViewModel()
     @State private var query = ""
+    @State private var confirmingPin: TaskLocation? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-            if let loc = selectedLocation {
-                // Collapsed — show selected location with clear button
+            if let pin = confirmingPin {
+                // Map confirmation step — user drags to fine-tune pin
+                LocationMapPicker(
+                    initialLocation: pin,
+                    onConfirm: { confirmed in
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            selectedLocation = confirmed
+                            confirmingPin = nil
+                        }
+                        query = ""
+                    },
+                    onCancel: {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            confirmingPin = nil
+                        }
+                        query = ""
+                    }
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            } else if let loc = selectedLocation {
+                // Selected — tap name to readjust pin, tap × to clear
                 HStack(spacing: DesignSystem.Spacing.xs) {
-                    Image(systemName: "mappin.circle.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(DesignSystem.Colors.accent)
-                    Text(loc.name)
-                        .font(.system(.caption))
-                        .foregroundStyle(DesignSystem.Colors.primaryText)
-                        .lineLimit(1)
+                    Button {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            confirmingPin = loc
+                        }
+                    } label: {
+                        HStack(spacing: DesignSystem.Spacing.xs) {
+                            Image(systemName: "mappin.circle.fill")
+                                .font(.system(size: 12))
+                                .foregroundStyle(DesignSystem.Colors.accent)
+                            Text(loc.name)
+                                .font(.system(.caption))
+                                .foregroundStyle(DesignSystem.Colors.primaryText)
+                                .lineLimit(1)
+                        }
+                    }
+                    .buttonStyle(.plain)
                     Spacer()
                     Button {
                         selectedLocation = nil
+                        query = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 14))
@@ -112,8 +142,10 @@ struct LocationSearchBar: View {
                             Button {
                                 _Concurrency.Task {
                                     if let loc = await searchVM.resolve(suggestion) {
-                                        selectedLocation = loc
-                                        query = ""
+                                        withAnimation(.easeOut(duration: 0.2)) {
+                                            confirmingPin = loc
+                                            searchVM.suggestions = []
+                                        }
                                     }
                                 }
                             } label: {
@@ -138,5 +170,7 @@ struct LocationSearchBar: View {
                 }
             }
         }
+        .animation(.easeOut(duration: 0.2), value: confirmingPin != nil)
+        .animation(.easeOut(duration: 0.2), value: selectedLocation != nil)
     }
 }

@@ -235,6 +235,17 @@ final class TodayViewModel {
         }
     }
 
+    /// Called from the pill's onAppear so the timer is always anchored to when
+    /// the pill is actually visible — not when markComplete ran (which may be
+    /// earlier for async location tasks).
+    func syncUndoTimer() {
+        guard showUndoToast else { return }
+        undoTimer?.invalidate()
+        undoTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: false) { [weak self] _ in
+            DispatchQueue.main.async { self?.clearUndo() }
+        }
+    }
+
     func undoLastCompletion() {
         guard let task = undoTask else { return }
         store.uncompleteTask(task.id, on: task.scheduledDateString)

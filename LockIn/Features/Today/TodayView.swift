@@ -203,6 +203,7 @@ struct TodayView: View {
                                 .transition(.scale.combined(with: .opacity))
                                 .onAppear {
                                     undoProgress = 1.0
+                                    viewModel.syncUndoTimer()
                                     withAnimation(.linear(duration: 4.0)) {
                                         undoProgress = 0.0
                                     }

@@ -56,8 +56,9 @@ final class BlockingService {
         // Bypass still active — keep shields removed
         if let expires = store.unblockExpiresAt, expires > Date() { return }
 
-        // Clean up expired bypass
+        // Clean up expired bypass + cancel the pending notification
         store.unblockExpiresAt = nil
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["bypass-expiry"])
 
         let blocking = store.incompleteBlockingTasks
         let selection = store.selectedApps

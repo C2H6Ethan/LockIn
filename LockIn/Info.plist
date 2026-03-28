@@ -26,6 +26,10 @@
 	<string>Lock In does not write health data, but HealthKit access requires this permission.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>LockIn uses motion data to count your steps during the walking bypass challenge.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Lock In verifies you visited the location attached to your task.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

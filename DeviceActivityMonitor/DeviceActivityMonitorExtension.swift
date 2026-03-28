@@ -2,6 +2,7 @@ import DeviceActivity
 import FamilyControls
 import Foundation
 import ManagedSettings
+import UserNotifications
 
 class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
@@ -11,6 +12,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         if activity.rawValue == Constants.DeviceActivity.bypassExpiry {
             let store = SharedStore(suiteName: Constants.AppGroup.id)
             store.unblockExpiresAt = nil
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["bypass-expiry"])
             applyOrRemoveShields()
             return
         }
@@ -28,6 +30,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         guard activity.rawValue == Constants.DeviceActivity.bypassExpiry else { return }
         let store = SharedStore(suiteName: Constants.AppGroup.id)
         store.unblockExpiresAt = nil
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["bypass-expiry"])
         applyOrRemoveShields()
     }
 
