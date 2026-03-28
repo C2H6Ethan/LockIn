@@ -57,9 +57,6 @@ struct LockInApp: App {
                 .preferredColorScheme(.dark)
                 .task {
                     guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
-                    #if DEBUG
-                    injectReviewTestDataIfNeeded()
-                    #endif
                     // Only request on launch for users who completed onboarding already.
                     // New users get the prompt from the Screen Time explainer step.
                     if SharedStore.shared.hasCompletedOnboarding {
@@ -82,6 +79,14 @@ struct LockInApp: App {
                         BlockingService.shared.updateShieldsForCurrentHabitState()
                         SchedulingService.shared.rescheduleReminderIfNeeded()
                         SchedulingService.shared.scheduleBlockingStartTimeMonitors(for: SharedStore.shared.tasks)
+                        // Re-register geofences — iOS may purge monitored regions under memory pressure
+                        let locationTasks = SharedStore.shared.buildTodayTasks().filter { $0.location != nil }
+                        if !locationTasks.isEmpty {
+                            _Concurrency.Task {
+                                await LocationVerificationService.shared.registerGeofences(for: locationTasks)
+                                LocationVerificationService.shared.startMonitoringEventsOnce()
+                            }
+                        }
                     }
                 }
                 .fullScreenCover(isPresented: $showOnboarding) {
@@ -123,22 +128,6 @@ struct LockInApp: App {
         #endif
     }
 
-    // MARK: - Review test data (TEMPORARY — remove after testing)
-
-    #if DEBUG
-    private func injectReviewTestDataIfNeeded() {
-        let store = SharedStore.shared
-        guard !store.hasCompletedOnboarding else { return }
-        let today = Date()
-        let weekday = Calendar.current.component(.weekday, from: today)
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: today)!
-        let task = Task(title: "Test task", activeDays: [weekday], blocksApps: true)
-        store.addTask(task)
-        store.streakData = StreakData(currentStreak: 6, longestStreak: 6,
-                                     lastCompletedDate: yesterday.dateString)
-        store.hasCompletedOnboarding = true
-    }
-    #endif
 
     // MARK: - Private
 

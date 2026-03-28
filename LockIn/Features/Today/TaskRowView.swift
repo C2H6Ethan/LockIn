@@ -7,6 +7,7 @@ struct TaskRowView: View {
     var stepCount: Int? = nil            // non-nil only for step goal tasks
     var isCompleted: Bool = false
     var locationVerificationFailed: Bool = false  // true while showing "must be at X" error
+    var locationIsVerifying: Bool = false         // true while GPS check is in progress
     var locationAlwaysAuthorized: Bool = false
 
     @State private var hapticTrigger = false
@@ -62,8 +63,16 @@ struct TaskRowView: View {
                             : DesignSystem.Colors.primaryText
                     )
 
-                // Location verification error (transient — shown until cleared)
-                if locationVerificationFailed, let locationName = task.location?.name {
+                // Location verification states (transient)
+                if locationIsVerifying {
+                    HStack(spacing: 3) {
+                        Image(systemName: "location.circle")
+                            .font(.system(size: 10))
+                        Text("Checking location…")
+                            .font(.system(.caption2))
+                    }
+                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+                } else if locationVerificationFailed, let locationName = task.location?.name {
                     HStack(spacing: 3) {
                         Image(systemName: "mappin.slash")
                             .font(.system(size: 10))

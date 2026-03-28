@@ -20,6 +20,7 @@ final class LocationVerificationService: NSObject, LocationVerifying {
     private let locationManager: CLLocationManager
     private var _monitor: CLMonitor?
     private var locationContinuation: CheckedContinuation<CLLocation?, Never>?
+    private var locationRequestGeneration: Int = 0
     private var monitoringTask: _Concurrency.Task<Void, Never>?
 
     var authorizationStatus: CLAuthorizationStatus {
@@ -143,14 +144,21 @@ final class LocationVerificationService: NSObject, LocationVerifying {
         locationContinuation?.resume(returning: nil)
         locationContinuation = nil
 
+        locationRequestGeneration += 1
+        let generation = locationRequestGeneration
+
         return await withCheckedContinuation { continuation in
             locationContinuation = continuation
             locationManager.requestLocation()
 
             // Hard timeout — resume with nil if the delegate never fires
             // (e.g. GPS unavailable, authorization revoked mid-flight).
+            // Generation check ensures this timeout only cancels its own request,
+            // not a newer one that started after this timeout was scheduled.
             DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
-                guard let self, let pending = self.locationContinuation else { return }
+                guard let self,
+                      self.locationRequestGeneration == generation,
+                      let pending = self.locationContinuation else { return }
                 self.locationContinuation = nil
                 pending.resume(returning: nil)
             }
@@ -183,7 +191,6 @@ extension LocationVerificationService: CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         guard let taskID = UUID(uuidString: region.identifier) else { return }
-        let store = SharedStore(suiteName: Constants.AppGroup.id)
-        store.logLocationVisit(taskID: taskID, on: Date().dateString)
+        SharedStore.shared.logLocationVisit(taskID: taskID, on: Date().dateString)
     }
 }

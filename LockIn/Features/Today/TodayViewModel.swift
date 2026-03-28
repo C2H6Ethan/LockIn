@@ -1,6 +1,7 @@
 import CoreLocation
 import Foundation
 import Observation
+import SwiftUI
 import WidgetKit
 
 @Observable
@@ -22,6 +23,8 @@ final class TodayViewModel {
     private var undoTimer: Timer?
     /// Set to the task ID when location verification fails. Drives error state in TaskRowView.
     private(set) var locationVerificationFailed: UUID?
+    /// Set to the task ID while GPS verification is in progress. Drives "Checking location…" in TaskRowView.
+    private(set) var locationIsVerifying: UUID?
     /// True after first successful location task completion when "When In Use" — prompts upgrade to Always.
     var showLocationUpgradePrompt = false
 
@@ -171,8 +174,7 @@ final class TodayViewModel {
         // Check if already visited today via background monitoring
         if store.hasVisitedLocation(taskID: task.id, on: Date().dateString) {
             locationVerificationFailed = nil
-            markComplete(task)
-            // One-time prompt to upgrade to Always authorization for background geofencing
+            animatedMarkComplete(task)
             if locationVerifier.authorizationStatus == .authorizedWhenInUse && !store.hasPromptedLocationAlways {
                 store.hasPromptedLocationAlways = true
                 showLocationUpgradePrompt = true
@@ -180,24 +182,51 @@ final class TodayViewModel {
             return
         }
 
-        // Show error state immediately so feedback is instant, regardless of GPS latency
+        // CLMonitor delivers visit events via `await MainActor.run { logLocationVisit }`.
+        // That block may be queued behind this function. Yield so it can flush before
+        // we fall through to the slower GPS path.
+        await _Concurrency.Task.yield()
+        if store.hasVisitedLocation(taskID: task.id, on: Date().dateString) {
+            locationVerificationFailed = nil
+            animatedMarkComplete(task)
+            return
+        }
+
+        // No background visit recorded — fall back to live GPS proximity check
+        locationIsVerifying = task.id
+        let verified = await locationVerifier.verifyCurrentLocation(for: task)
+        locationIsVerifying = nil
+
+        if verified {
+            locationVerificationFailed = nil
+            animatedMarkComplete(task)
+            if locationVerifier.authorizationStatus == .authorizedWhenInUse && !store.hasPromptedLocationAlways {
+                store.hasPromptedLocationAlways = true
+                showLocationUpgradePrompt = true
+            }
+            return
+        }
+
+        // Final re-check: visit may have flushed during the GPS await
+        if store.hasVisitedLocation(taskID: task.id, on: Date().dateString) {
+            locationVerificationFailed = nil
+            animatedMarkComplete(task)
+            return
+        }
+
         locationVerificationFailed = task.id
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
             if self?.locationVerificationFailed == task.id {
                 self?.locationVerificationFailed = nil
             }
         }
+    }
 
-        // Not visited — try current location
-        let verified = await locationVerifier.verifyCurrentLocation(for: task)
-        if verified {
-            locationVerificationFailed = nil
+    /// Wraps markComplete in a withAnimation — needed when called from an async
+    /// context (completeTaskWithLocationCheck) that lost the original animation transaction.
+    private func animatedMarkComplete(_ task: TodayTask) {
+        withAnimation(.easeOut(duration: 0.25)) {
             markComplete(task)
-            // One-time prompt to upgrade to Always authorization for background geofencing
-            if locationVerifier.authorizationStatus == .authorizedWhenInUse && !store.hasPromptedLocationAlways {
-                store.hasPromptedLocationAlways = true
-                showLocationUpgradePrompt = true
-            }
         }
     }
 

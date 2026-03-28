@@ -186,6 +186,7 @@ struct TodayView: View {
                         },
                         stepCount: task.stepTarget != nil ? viewModel.stepsToday : nil,
                         locationVerificationFailed: viewModel.locationVerificationFailed == task.id,
+                        locationIsVerifying: viewModel.locationIsVerifying == task.id,
                         locationAlwaysAuthorized: task.location != nil && viewModel.locationAlwaysAuthorized
                     )
                     .id("incomplete-\(task.id)")
