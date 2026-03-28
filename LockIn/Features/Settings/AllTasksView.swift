@@ -16,27 +16,11 @@ struct AllTasksView: View {
         ZStack {
             DesignSystem.Colors.background.ignoresSafeArea()
 
-            List {
-                ForEach(viewModel.tasks) { task in
-                    Button {
-                        editingTask = task
-                    } label: {
-                        taskRow(task)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .listRowBackground(DesignSystem.Colors.background)
-                }
-                .onDelete { indexSet in
-                    guard !viewModel.isLocked else { return }
-                    for index in indexSet {
-                        viewModel.deleteTask(id: viewModel.tasks[index].id)
-                    }
-                }
-                .deleteDisabled(viewModel.isLocked)
+            if viewModel.tasks.isEmpty {
+                emptyState
+            } else {
+                taskList
             }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
         }
         .navigationTitle("Tasks")
         .navigationBarTitleDisplayMode(.large)
@@ -50,14 +34,136 @@ struct AllTasksView: View {
                 }
             }
         }
-        .fullScreenCover(item: $editingTask) { task in
+        .sheet(item: $editingTask) { task in
             EditTaskSheet(task: task, isLocked: viewModel.isLocked, viewModel: viewModel)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
+                .presentationBackground(DesignSystem.Colors.background)
         }
-        .fullScreenCover(isPresented: $viewModel.showingAddTask) {
+        .sheet(isPresented: $viewModel.showingAddTask) {
             AddTaskSheet(viewModel: TodayViewModel())
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
+                .presentationBackground(DesignSystem.Colors.background)
         }
         .onAppear {
             viewModel.onAppear()
+        }
+    }
+
+    // MARK: - Task List
+
+    private var taskList: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(viewModel.tasks) { task in
+                    taskRow(task)
+                        .padding(.horizontal, DesignSystem.Spacing.lg)
+                }
+            }
+            .padding(.top, DesignSystem.Spacing.sm)
+            .padding(.bottom, DesignSystem.Spacing.xl)
+        }
+    }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: DesignSystem.Spacing.md) {
+            Text("No tasks yet.")
+                .font(.system(.body))
+                .foregroundStyle(DesignSystem.Colors.secondaryText)
+            Button {
+                viewModel.showingAddTask = true
+            } label: {
+                Text("Add Task")
+                    .font(.system(.subheadline, weight: .medium))
+                    .foregroundStyle(DesignSystem.Colors.accent)
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Row
+
+    @ViewBuilder
+    private func taskRow(_ task: Task) -> some View {
+        Button {
+            editingTask = task
+        } label: {
+            HStack(alignment: .center, spacing: DesignSystem.Spacing.md) {
+                // Title + metadata
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                    Text(task.title)
+                        .font(.system(.body))
+                        .foregroundStyle(DesignSystem.Colors.primaryText)
+
+                    metadataLine(for: task)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(DesignSystem.Colors.secondaryText.opacity(0.5))
+            }
+            .padding(.vertical, DesignSystem.Spacing.sm + 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func metadataLine(for task: Task) -> some View {
+        HStack(spacing: DesignSystem.Spacing.sm) {
+            // Date: once date or day abbreviations
+            if task.isOnce {
+                Text(onceDateLabel(for: task))
+                    .font(.system(.caption))
+                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+            } else {
+                HStack(spacing: 3) {
+                    ForEach(dayOrder, id: \.self) { weekday in
+                        if task.activeDays.contains(weekday) {
+                            Text(dayLabels[weekday] ?? "")
+                                .font(.system(size: 11))
+                                .foregroundStyle(DesignSystem.Colors.secondaryText)
+                        }
+                    }
+                    if task.blocksApps, let startTime = task.blockingStartTime {
+                        Text("· from \(formattedTime(startTime))")
+                            .font(.system(size: 11))
+                            .foregroundStyle(DesignSystem.Colors.secondaryText.opacity(0.6))
+                    }
+                }
+            }
+
+            // Location
+            if let locationName = task.location?.name {
+                HStack(spacing: 3) {
+                    Image(systemName: "mappin")
+                        .font(.system(size: 10))
+                    Text(locationName)
+                        .font(.system(.caption))
+                }
+                .foregroundStyle(DesignSystem.Colors.secondaryText)
+            }
+
+            // Steps
+            if let target = task.stepTarget {
+                let thousands = Double(target) / 1_000
+                let label = thousands.truncatingRemainder(dividingBy: 1) == 0
+                    ? "\(Int(thousands))k steps"
+                    : "\(String(format: "%.1f", thousands))k steps"
+                HStack(spacing: 3) {
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 10))
+                    Text(label)
+                        .font(.system(.caption))
+                }
+                .foregroundStyle(DesignSystem.Colors.secondaryText)
+            }
         }
     }
 
@@ -79,67 +185,5 @@ struct AllTasksView: View {
         formatter.dateFormat = "MMM d"
         formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter.string(from: date)
-    }
-
-    // MARK: - Row
-
-    @ViewBuilder
-    private func taskRow(_ task: Task) -> some View {
-        HStack(spacing: DesignSystem.Spacing.sm) {
-            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                Text(task.title)
-                    .font(.system(.body))
-                    .foregroundStyle(DesignSystem.Colors.primaryText)
-
-                if let locationName = task.location?.name {
-                    HStack(spacing: 3) {
-                        Image(systemName: "mappin")
-                            .font(.system(size: 9))
-                        Text(locationName)
-                            .font(.system(.caption2, weight: .medium))
-                    }
-                    .foregroundStyle(task.blocksApps ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText)
-                } else if let target = task.stepTarget {
-                    let thousands = Double(target) / 1_000
-                    let label = thousands.truncatingRemainder(dividingBy: 1) == 0
-                        ? "\(Int(thousands))k steps"
-                        : "\(String(format: "%.1f", thousands))k steps"
-                    Text(label)
-                        .font(.system(.caption2, weight: .medium))
-                        .foregroundStyle(task.blocksApps ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText)
-                } else if task.isOnce {
-                    Text(onceDateLabel(for: task))
-                        .font(.system(.caption2, weight: .medium))
-                        .foregroundStyle(task.blocksApps ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText)
-                } else {
-                    // Day chips sorted Mon–Sun
-                    HStack(spacing: DesignSystem.Spacing.xs) {
-                        ForEach(dayOrder, id: \.self) { weekday in
-                            if task.activeDays.contains(weekday) {
-                                Text(dayLabels[weekday] ?? "")
-                                    .font(.system(.caption2, weight: .medium))
-                                    .foregroundStyle(
-                                        task.blocksApps
-                                            ? DesignSystem.Colors.accent
-                                            : DesignSystem.Colors.secondaryText
-                                    )
-                            }
-                        }
-                        if task.blocksApps, let startTime = task.blockingStartTime {
-                            Text("· from \(formattedTime(startTime))")
-                                .font(.system(.caption2, weight: .medium))
-                                .foregroundStyle(DesignSystem.Colors.secondaryText)
-                        }
-                    }
-                }
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(DesignSystem.Colors.secondaryText)
-        }
-        .padding(.vertical, DesignSystem.Spacing.xs)
     }
 }

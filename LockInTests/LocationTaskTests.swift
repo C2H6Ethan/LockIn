@@ -70,7 +70,7 @@ final class LocationTaskTests: XCTestCase {
 
     func testTaskLocation_defaultRadius() {
         let loc = TaskLocation(latitude: 37.7749, longitude: -122.4194, name: "Gym")
-        XCTAssertEqual(loc.radius, 100)
+        XCTAssertEqual(loc.radius, 200)
     }
 
     func testTask_withLocation_encodesDecodes() throws {

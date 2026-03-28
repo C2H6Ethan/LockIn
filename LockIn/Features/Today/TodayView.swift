@@ -94,8 +94,11 @@ struct TodayView: View {
             burstTrigger += 1
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         }
-        .fullScreenCover(isPresented: $viewModel.showingAddTask) {
+        .sheet(isPresented: $viewModel.showingAddTask) {
             AddTaskSheet(viewModel: viewModel)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
+                .presentationBackground(DesignSystem.Colors.background)
         }
         .fullScreenCover(isPresented: Binding(
             get: { viewModel.pendingFreezeOffer },
@@ -105,6 +108,7 @@ struct TodayView: View {
                 onUse: { viewModel.consumeFreeze() },
                 onDecline: { viewModel.declineFreeze() }
             )
+            .interactiveDismissDisabled(true)
         }
         .sheet(isPresented: $viewModel.showLocationUpgradePrompt) {
             LocationUpgradeSheet(

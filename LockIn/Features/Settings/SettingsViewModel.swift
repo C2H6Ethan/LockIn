@@ -193,14 +193,18 @@ final class SettingsViewModel {
 
     private func sync() {
         tasks = store.tasks.sorted { a, b in
-            let aIdx = weekdayOrder.firstIndex(where: { a.activeDays.contains($0) }) ?? Int.max
-            let bIdx = weekdayOrder.firstIndex(where: { b.activeDays.contains($0) }) ?? Int.max
-            if aIdx != bIdx { return aIdx < bIdx }
+            // Once tasks first
+            if a.isOnce != b.isOnce { return a.isOnce }
+            // Within once tasks: sort by date
             if a.isOnce && b.isOnce {
                 let aDate = a.onceStartDate ?? ""
                 let bDate = b.onceStartDate ?? ""
                 if aDate != bDate { return aDate < bDate }
             }
+            // Within recurring tasks: sort by earliest active weekday
+            let aIdx = weekdayOrder.firstIndex(where: { a.activeDays.contains($0) }) ?? Int.max
+            let bIdx = weekdayOrder.firstIndex(where: { b.activeDays.contains($0) }) ?? Int.max
+            if aIdx != bIdx { return aIdx < bIdx }
             return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
         }
         let sel = store.selectedApps
