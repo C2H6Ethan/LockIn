@@ -52,6 +52,7 @@ final class LocationVerificationService: NSObject, LocationVerifying {
     func registerGeofences(for tasks: [TodayTask]) async {
         let mon = await getMonitor()
         let locationTasks = tasks.filter { $0.location != nil }
+        ActivityLog.log("GEOFENCE_REGISTER: \(locationTasks.count) location tasks")
         for task in locationTasks {
             let loc = task.location!
             let identifier = task.id.uuidString
@@ -75,10 +76,13 @@ final class LocationVerificationService: NSObject, LocationVerifying {
         if !locationTasks.isEmpty,
            let current = await requestCurrentLocation() {
             let today = Date().dateString
+            ActivityLog.log("GEOFENCE_PROXIMITY_CHECK: lat=\(current.coordinate.latitude) lon=\(current.coordinate.longitude) acc=\(current.horizontalAccuracy)m")
             for task in locationTasks {
                 let loc = task.location!
                 let target = CLLocation(latitude: loc.latitude, longitude: loc.longitude)
-                if current.distance(from: target) <= loc.radius {
+                let dist = current.distance(from: target)
+                if dist <= loc.radius {
+                    ActivityLog.log("GEOFENCE_ALREADY_INSIDE: \"\(task.title)\" dist=\(Int(dist))m radius=\(Int(loc.radius))m")
                     await MainActor.run {
                         SharedStore.shared.logLocationVisit(taskID: task.id, on: today)
                     }
@@ -114,8 +118,7 @@ final class LocationVerificationService: NSObject, LocationVerifying {
                 guard case .satisfied = event.state else { continue }
                 guard let taskID = UUID(uuidString: event.identifier) else { continue }
                 let today = Date().dateString
-                // Log visit only — didEnterRegion handles notifications reliably
-                // in foreground, background, and terminated states.
+                ActivityLog.log("CLMONITOR_SATISFIED: taskID=\(taskID.uuidString.prefix(8))")
                 await MainActor.run {
                     SharedStore.shared.logLocationVisit(taskID: taskID, on: today)
                 }
@@ -132,10 +135,19 @@ final class LocationVerificationService: NSObject, LocationVerifying {
     func verifyCurrentLocation(for task: TodayTask) async -> Bool {
         guard let location = task.location else { return true }
         let status = locationManager.authorizationStatus
-        guard status == .authorizedWhenInUse || status == .authorizedAlways else { return false }
-        guard let current = await requestCurrentLocation() else { return false }
+        guard status == .authorizedWhenInUse || status == .authorizedAlways else {
+            ActivityLog.log("LOC_VERIFY_DENIED: \"\(task.title)\" status=\(status.rawValue)")
+            return false
+        }
+        guard let current = await requestCurrentLocation() else {
+            ActivityLog.log("LOC_VERIFY_NO_FIX: \"\(task.title)\" (GPS timeout or unavailable)")
+            return false
+        }
         let target = CLLocation(latitude: location.latitude, longitude: location.longitude)
-        return current.distance(from: target) <= location.radius
+        let dist = current.distance(from: target)
+        let passed = dist <= location.radius
+        ActivityLog.log("LOC_VERIFY: \"\(task.title)\" dist=\(Int(dist))m radius=\(Int(location.radius))m acc=\(Int(current.horizontalAccuracy))m → \(passed ? "PASS" : "FAIL")")
+        return passed
     }
 
     private func requestCurrentLocation() async -> CLLocation? {
@@ -191,6 +203,7 @@ extension LocationVerificationService: CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         guard let taskID = UUID(uuidString: region.identifier) else { return }
+        ActivityLog.log("DID_ENTER_REGION: taskID=\(taskID.uuidString.prefix(8))")
         SharedStore.shared.logLocationVisit(taskID: taskID, on: Date().dateString)
     }
 }

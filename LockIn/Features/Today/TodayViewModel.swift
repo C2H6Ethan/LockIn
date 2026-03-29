@@ -173,6 +173,7 @@ final class TodayViewModel {
 
         // Check if already visited today via background monitoring
         if store.hasVisitedLocation(taskID: task.id, on: Date().dateString) {
+            ActivityLog.log("LOC_COMPLETE_VIA_VISIT: \"\(task.title)\"")
             locationVerificationFailed = nil
             animatedMarkComplete(task)
             if locationVerifier.authorizationStatus == .authorizedWhenInUse && !store.hasPromptedLocationAlways {
@@ -187,17 +188,20 @@ final class TodayViewModel {
         // we fall through to the slower GPS path.
         await _Concurrency.Task.yield()
         if store.hasVisitedLocation(taskID: task.id, on: Date().dateString) {
+            ActivityLog.log("LOC_COMPLETE_VIA_VISIT_YIELD: \"\(task.title)\"")
             locationVerificationFailed = nil
             animatedMarkComplete(task)
             return
         }
 
         // No background visit recorded — fall back to live GPS proximity check
+        ActivityLog.log("LOC_GPS_CHECK_START: \"\(task.title)\"")
         locationIsVerifying = task.id
         let verified = await locationVerifier.verifyCurrentLocation(for: task)
         locationIsVerifying = nil
 
         if verified {
+            ActivityLog.log("LOC_COMPLETE_VIA_GPS: \"\(task.title)\"")
             locationVerificationFailed = nil
             animatedMarkComplete(task)
             if locationVerifier.authorizationStatus == .authorizedWhenInUse && !store.hasPromptedLocationAlways {
@@ -209,11 +213,13 @@ final class TodayViewModel {
 
         // Final re-check: visit may have flushed during the GPS await
         if store.hasVisitedLocation(taskID: task.id, on: Date().dateString) {
+            ActivityLog.log("LOC_COMPLETE_VIA_VISIT_LATE: \"\(task.title)\"")
             locationVerificationFailed = nil
             animatedMarkComplete(task)
             return
         }
 
+        ActivityLog.log("LOC_VERIFY_FAILED: \"\(task.title)\"")
         locationVerificationFailed = task.id
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
             if self?.locationVerificationFailed == task.id {

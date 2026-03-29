@@ -58,9 +58,9 @@ final class LocationSearchViewModel: NSObject, MKLocalSearchCompleterDelegate {
 
 struct LocationSearchBar: View {
     @Binding var selectedLocation: TaskLocation?
+    @Binding var confirmingPin: TaskLocation?
     @State private var searchVM = LocationSearchViewModel()
     @State private var query = ""
-    @State private var confirmingPin: TaskLocation? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {

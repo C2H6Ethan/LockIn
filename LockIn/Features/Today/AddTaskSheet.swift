@@ -20,6 +20,7 @@ struct AddTaskSheet: View {
     @State private var stepTarget: Int = 5_000
     @State private var hasLocation = false
     @State private var selectedLocation: TaskLocation? = nil
+    @State private var confirmingPin: TaskLocation? = nil
     @State private var showLocationDeniedHint = false
     @State private var isSubmitting = false
     @FocusState private var titleFocused: Bool
@@ -71,13 +72,14 @@ struct AddTaskSheet: View {
                         let recurrence: TaskRecurrence = repeats
                             ? .weekly(days: selectedDays)
                             : .once(startDate: onceStartDate)
+                        let resolvedLocation = hasLocation ? (selectedLocation ?? confirmingPin) : nil
                         viewModel.addTask(
                             title: title.trimmingCharacters(in: .whitespaces),
                             recurrence: recurrence,
                             blocksApps: blocksApps,
                             stepTarget: hasStepGoal ? stepTarget : nil,
                             blockingStartTime: blockingStartTime,
-                            location: hasLocation ? selectedLocation : nil
+                            location: resolvedLocation
                         )
                         dismiss()
                     } label: {
@@ -283,7 +285,7 @@ struct AddTaskSheet: View {
                         }
 
                         if hasLocation {
-                            LocationSearchBar(selectedLocation: $selectedLocation)
+                            LocationSearchBar(selectedLocation: $selectedLocation, confirmingPin: $confirmingPin)
                         }
 
                         // Blocks Apps toggle + optional start time

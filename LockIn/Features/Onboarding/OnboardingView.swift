@@ -27,6 +27,7 @@ struct OnboardingView: View {
     @State private var habitStepTarget: Int = 5_000
     @State private var habitHasLocation = false
     @State private var habitSelectedLocation: TaskLocation? = nil
+    @State private var habitConfirmingPin: TaskLocation? = nil
     @State private var habitLocationDenied = false
     @FocusState private var habitFieldFocused: Bool
 
@@ -443,7 +444,7 @@ struct OnboardingView: View {
                 }
 
                 if habitHasLocation {
-                    LocationSearchBar(selectedLocation: $habitSelectedLocation)
+                    LocationSearchBar(selectedLocation: $habitSelectedLocation, confirmingPin: $habitConfirmingPin)
                 }
 
                 // Blocks Apps toggle + optional start time
@@ -571,7 +572,7 @@ struct OnboardingView: View {
                 blocksApps: habitBlocksApps,
                 stepTarget: habitHasStepGoal ? habitStepTarget : nil,
                 blockingStartTime: habitBlockingStartTime,
-                location: habitHasLocation ? habitSelectedLocation : nil
+                location: habitHasLocation ? (habitSelectedLocation ?? habitConfirmingPin) : nil
             ))
             BlockingService.shared.updateShieldsForCurrentHabitState()
             UINotificationFeedbackGenerator().notificationOccurred(.success)

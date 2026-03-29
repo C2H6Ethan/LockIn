@@ -22,6 +22,7 @@ struct EditTaskSheet: View {
     @State private var stepTarget: Int
     @State private var hasLocation: Bool
     @State private var selectedLocation: TaskLocation?
+    @State private var confirmingPin: TaskLocation? = nil
     @State private var showLocationDeniedHint = false
 
     // Calendar weekday order: Mon=2 … Sun=1, displayed Mon–Sun
@@ -96,7 +97,7 @@ struct EditTaskSheet: View {
                             createdAt: task.createdAt,
                             stepTarget: hasStepGoal ? stepTarget : nil,
                             blockingStartTime: blockingStartTime,
-                            location: hasLocation ? selectedLocation : nil
+                            location: hasLocation ? (selectedLocation ?? confirmingPin) : nil
                         )
                         viewModel.updateTask(updated)
                         dismiss()
@@ -309,7 +310,7 @@ struct EditTaskSheet: View {
                         }
 
                         if hasLocation {
-                            LocationSearchBar(selectedLocation: $selectedLocation)
+                            LocationSearchBar(selectedLocation: $selectedLocation, confirmingPin: $confirmingPin)
                         }
 
                         // Blocks Apps toggle + optional start time
