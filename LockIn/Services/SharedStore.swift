@@ -370,7 +370,9 @@ final class SharedStore {
             return
         }
 
-        // Check if the next day is now complete (task was moved away, making it done)
+        // Check if the next day is now complete (task was moved away, making it done).
+        // Only advance if the streak is active — a streak reset to 0 should stay dead.
+        guard streakData.currentStreak > 0 else { return }
         let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: lastDate)!
         let nextString = nextDay.dateString
         guard let nextCompletions = completionLog[nextString], !nextCompletions.isEmpty else { return }
