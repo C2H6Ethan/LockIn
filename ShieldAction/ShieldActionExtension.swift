@@ -31,6 +31,7 @@ class ShieldActionExtension: ShieldActionDelegate {
 
     private func scheduleBypassNotification() {
         let store = SharedStore(suiteName: Constants.AppGroup.id)
+        store.bypassRequested = true
         let steps = store.stepsRequired
         let content = UNMutableNotificationContent()
         content.title = "Earn your access."

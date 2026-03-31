@@ -18,6 +18,9 @@ final class ManagedSettingsShieldApplier: ShieldApplying {
     func apply(selection: FamilyActivitySelection, customDomains: [String]) {
         let appTokens = selection.applicationTokens
         managedStore.shield.applications = appTokens.isEmpty ? nil : appTokens
+        let categoryTokens = selection.categoryTokens
+        managedStore.shield.applicationCategories = categoryTokens.isEmpty ? nil : .specific(categoryTokens)
+        managedStore.shield.webDomainCategories = categoryTokens.isEmpty ? nil : .specific(categoryTokens)
         let webTokens = selection.webDomainTokens
         managedStore.shield.webDomains = webTokens.isEmpty ? nil : webTokens
         if customDomains.isEmpty {
@@ -29,7 +32,9 @@ final class ManagedSettingsShieldApplier: ShieldApplying {
 
     func remove() {
         managedStore.shield.applications = nil
+        managedStore.shield.applicationCategories = nil
         managedStore.shield.webDomains = nil
+        managedStore.shield.webDomainCategories = nil
         managedStore.webContent.blockedByFilter = nil
     }
 }
@@ -63,7 +68,7 @@ final class BlockingService {
         let blocking = store.incompleteBlockingTasks
         let selection = store.selectedApps
         let customDomains = store.selectedWebDomains
-        let hasApps = !selection.applicationTokens.isEmpty
+        let hasApps = !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
         let hasDomains = !selection.webDomainTokens.isEmpty
         let hasCustomDomains = !customDomains.isEmpty
 
@@ -71,6 +76,13 @@ final class BlockingService {
             applier.apply(selection: selection, customDomains: customDomains)
         } else {
             applier.remove()
+            // No blocking needed — clean up any pending bypass notification/flag
+            if store.bypassRequested {
+                store.bypassRequested = false
+                let center = UNUserNotificationCenter.current()
+                center.removePendingNotificationRequests(withIdentifiers: [Constants.Stepping.notificationID])
+                center.removeDeliveredNotifications(withIdentifiers: [Constants.Stepping.notificationID])
+            }
         }
     }
 

@@ -27,6 +27,7 @@ struct StepsChallengeView: View {
             UIApplication.shared.isIdleTimerDisabled = false
             viewModel.stopTracking()
         }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Challenge screen

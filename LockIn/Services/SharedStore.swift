@@ -170,6 +170,14 @@ final class SharedStore {
         }
     }
 
+    var bypassRequested: Bool {
+        get { defaults.bool(forKey: Keys.bypassRequested) }
+        set {
+            defaults.set(newValue, forKey: Keys.bypassRequested)
+            defaults.synchronize()
+        }
+    }
+
     /// The daily reminder time. nil = never. Absent key = default 8 pm.
     var dailyReminderTime: Date? {
         get {
@@ -714,5 +722,6 @@ final class SharedStore {
         static let frozenDate = "frozenDate"
         static let locationVisits = "locationVisits"
         static let hasPromptedLocationAlways = "hasPromptedLocationAlways"
+        static let bypassRequested = "bypassRequested"
     }
 }

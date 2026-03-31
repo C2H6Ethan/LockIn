@@ -8,7 +8,9 @@ final class SettingsViewModel {
     // MARK: - App picker state
 
     var showingAppPicker = false
-    private(set) var selectedCount: Int
+    private(set) var appCount: Int
+    private(set) var categoryCount: Int
+    var selectedCount: Int { appCount + categoryCount }
 
     // MARK: - Task management state
 
@@ -41,7 +43,8 @@ final class SettingsViewModel {
         self.store = store
         self.blocking = blocking
         let sel = store.selectedApps
-        self.selectedCount = sel.applicationTokens.count + sel.webDomainTokens.count
+        self.appCount = sel.applicationTokens.count + sel.webDomainTokens.count
+        self.categoryCount = sel.categoryTokens.count
         notificationObserver = NotificationCenter.default.addObserver(
             forName: .habitsDidChange,
             object: nil,
@@ -66,34 +69,37 @@ final class SettingsViewModel {
     // MARK: - Picker actions
 
     func saveSelectedApps(_ selection: FamilyActivitySelection) {
-        // Strip category tokens only — app and web domain tokens both contribute to blocking.
-        var cleaned = selection
-        cleaned.categoryTokens = []
-
         if store.isLocked {
-            var enforced = cleaned
+            var enforced = selection
             if let locked = store.lockedAppTokens {
-                enforced.applicationTokens = cleaned.applicationTokens.union(locked.applicationTokens)
-                enforced.webDomainTokens = cleaned.webDomainTokens.union(locked.webDomainTokens)
+                enforced.applicationTokens = selection.applicationTokens.union(locked.applicationTokens)
+                enforced.webDomainTokens = selection.webDomainTokens.union(locked.webDomainTokens)
+                enforced.categoryTokens = selection.categoryTokens.union(locked.categoryTokens)
             }
             store.selectedApps = enforced
             store.lockedAppTokens = enforced
-            selectedCount = enforced.applicationTokens.count + enforced.webDomainTokens.count
+            appCount = enforced.applicationTokens.count + enforced.webDomainTokens.count
+            categoryCount = enforced.categoryTokens.count
         } else {
-            store.selectedApps = cleaned
-            selectedCount = cleaned.applicationTokens.count + cleaned.webDomainTokens.count
+            store.selectedApps = selection
+            appCount = selection.applicationTokens.count + selection.webDomainTokens.count
+            categoryCount = selection.categoryTokens.count
         }
         blocking.updateShieldsForCurrentHabitState()
     }
 
     var appSelectionSummary: String {
-        selectedCount == 0 ? "None" : "\(selectedCount) selected"
+        if appCount == 0 && categoryCount == 0 { return "None" }
+        if categoryCount == 0 { return "\(appCount) selected" }
+        if appCount == 0 { return "\(categoryCount) \(categoryCount == 1 ? "group" : "groups")" }
+        return "\(appCount) \(appCount == 1 ? "app" : "apps"), \(categoryCount) \(categoryCount == 1 ? "group" : "groups")"
     }
 
     func clearAllBlocked() {
         store.selectedApps = FamilyActivitySelection()
         store.lockedAppTokens = nil
-        selectedCount = 0
+        appCount = 0
+        categoryCount = 0
         blocking.updateShieldsForCurrentHabitState()
     }
 
@@ -208,7 +214,8 @@ final class SettingsViewModel {
             return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
         }
         let sel = store.selectedApps
-        selectedCount = sel.applicationTokens.count + sel.webDomainTokens.count
+        appCount = sel.applicationTokens.count + sel.webDomainTokens.count
+        categoryCount = sel.categoryTokens.count
         isLocked = store.isLocked
         lockExpiresAt = store.lockExpiresAt
         customDomains = store.selectedWebDomains

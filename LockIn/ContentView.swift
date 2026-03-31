@@ -1,7 +1,9 @@
 import SwiftUI
+import UserNotifications
 
 struct ContentView: View {
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = 0
     @State private var showBypass = false
 
@@ -26,7 +28,9 @@ struct ContentView: View {
         .tint(DesignSystem.Colors.accent)
         .onOpenURL { url in
             switch url.host {
-            case "bypass": showBypass = true
+            case "bypass":
+                clearBypassNotification()
+                showBypass = true
             case "today":  selectedTab = 0
             default: break
             }
@@ -34,5 +38,18 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showBypass) {
             StepsChallengeView()
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active && !showBypass && SharedStore.shared.bypassRequested {
+                clearBypassNotification()
+                showBypass = true
+            }
+        }
+    }
+
+    private func clearBypassNotification() {
+        SharedStore.shared.bypassRequested = false
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [Constants.Stepping.notificationID])
+        center.removeDeliveredNotifications(withIdentifiers: [Constants.Stepping.notificationID])
     }
 }

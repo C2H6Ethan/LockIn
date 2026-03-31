@@ -30,10 +30,23 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         let steps = store.stepsRequired
         let secondaryLabel = "\(steps) steps to earn access"
 
-        let background = UIColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1)   // #0A0A0A
-        let primary    = UIColor(red: 0.96, green: 0.96, blue: 0.94, alpha: 1)   // #F5F5F0
-        let secondary  = UIColor(red: 0.42, green: 0.42, blue: 0.42, alpha: 1)   // #6B6B6B
-        let accent     = UIColor(red: 0.91, green: 0.84, blue: 0.64, alpha: 1)   // #E8D5A3
+        // Dynamic colors so text stays readable in both light and dark mode
+        let background = UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1)   // #0A0A0A
+                : UIColor(red: 0.96, green: 0.96, blue: 0.94, alpha: 1)   // #F5F5F0
+        }
+        let primary = UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0.96, green: 0.96, blue: 0.94, alpha: 1)   // #F5F5F0
+                : UIColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1)   // #0A0A0A
+        }
+        let secondary = UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0.42, green: 0.42, blue: 0.42, alpha: 1)   // #6B6B6B
+                : UIColor(red: 0.35, green: 0.35, blue: 0.35, alpha: 1)   // #595959
+        }
+        let accent = UIColor(red: 0.91, green: 0.84, blue: 0.64, alpha: 1)   // #E8D5A3 (works on both)
 
         var logo: UIImage? = nil
         if let path = Bundle.main.path(forResource: "ShieldLogo", ofType: "png") {
@@ -53,7 +66,7 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             ),
             primaryButtonLabel: ShieldConfiguration.Label(
                 text: Constants.ShieldDisplay.primaryButton,
-                color: background
+                color: UIColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1)
             ),
             primaryButtonBackgroundColor: accent,
             secondaryButtonLabel: ShieldConfiguration.Label(

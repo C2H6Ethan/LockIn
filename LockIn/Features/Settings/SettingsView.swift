@@ -47,13 +47,13 @@ struct SettingsView: View {
                 }
                 .listRowBackground(DesignSystem.Colors.background)
 
-                // MARK: Section 1b — Block Custom Domains
+                // MARK: Section 1b — Blocked Custom Domains
                 Section {
                     NavigationLink {
                         BlockCustomURLsView(viewModel: viewModel)
                     } label: {
                         HStack {
-                            Text("Block Custom Domains")
+                            Text("Blocked Custom Domains")
                                 .foregroundStyle(DesignSystem.Colors.primaryText)
                             Spacer()
                             Text(viewModel.customDomainSummary)
