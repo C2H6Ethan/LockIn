@@ -34,6 +34,9 @@ struct Task: Codable, Identifiable, Equatable {
     var blockingStartTime: DateComponents?
     /// When set, task requires location verification to complete.
     var location: TaskLocation?
+    /// Set by SharedStore.updateTask when recurrence changes. Carryover is suppressed
+    /// for any past date that falls before this date (the old schedule no longer applies).
+    var recurrenceChangedAt: Date?
 
     init(
         id: UUID = UUID(),

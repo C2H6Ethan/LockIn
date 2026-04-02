@@ -189,6 +189,41 @@ final class BuildTodayTasksEdgeCaseTests: XCTestCase {
                        "Task completed (even as carryover) must not reappear on subsequent days")
     }
 
+    // MARK: - Recurrence edit: changing day must not produce phantom carryover
+
+    func testCarryover_taskEditedFromFridayToSaturday_doesNotAppearOnWednesday() {
+        // Scenario: task was created two weeks ago recurring on Friday.
+        // Today is Wednesday. We edit the recurrence to Saturday.
+        // The task should NOT appear in Wednesday's list — it was never due on
+        // last Saturday (March 28) and next Saturday hasn't arrived yet.
+        let wednesday = date(2026, 4, 1)   // weekday 4
+        let lastFriday = date(2026, 3, 27) // weekday 6 — the most recent Friday within the 7-day window
+        let createdAt  = date(2026, 3, 13) // two Fridays ago — task has history
+
+        let fridayWeekday   = Calendar.current.component(.weekday, from: lastFriday)
+        let saturdayWeekday = Calendar.current.component(.weekday, from: date(2026, 3, 28))
+
+        // 1. Add as a Friday task (uncompleted on last Friday → would carryover before edit)
+        let task = Task(title: "gym", recurrence: .weekly(days: [fridayWeekday]),
+                        blocksApps: true, createdAt: createdAt)
+        store.addTask(task)
+
+        let beforeEdit = store.buildTodayTasks(on: wednesday)
+        XCTAssertTrue(beforeEdit.contains { $0.id == task.id },
+                      "Precondition: uncompleted Friday task must appear as carryover on Wednesday before edit")
+
+        // 2. Edit recurrence from Friday → Saturday (stamp recurrenceChangedAt as Wednesday)
+        var edited = task
+        edited.recurrence = .weekly(days: [saturdayWeekday])
+        store.updateTask(edited, now: wednesday)
+
+        // 3. Task must NOT appear in Wednesday's list — it was never a Saturday task
+        //    before the edit, so last Saturday is not a valid missed day for it.
+        let afterEdit = store.buildTodayTasks(on: wednesday)
+        XCTAssertFalse(afterEdit.contains { $0.id == task.id },
+                       "Task edited from Friday to Saturday must not appear as a carryover on Wednesday — it was never scheduled on last Saturday")
+    }
+
     // MARK: - incompleteBlockingTasks respects blockingStartTime
 
     func testIncompleteBlockingTasks_futureStartTime_notBlocking() {

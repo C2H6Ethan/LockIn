@@ -342,9 +342,13 @@ final class SharedStore {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
-    func updateTask(_ task: Task) {
+    func updateTask(_ task: Task, now: Date = Date()) {
         guard let index = tasks.firstIndex(where: { $0.id == task.id }) else { return }
-        tasks[index] = task
+        var newTask = task
+        if tasks[index].recurrence != task.recurrence {
+            newTask.recurrenceChangedAt = now
+        }
+        tasks[index] = newTask
         saveTasks()
         reconcileStreakAfterEdit()
         WidgetCenter.shared.reloadAllTimelines()
@@ -597,6 +601,9 @@ final class SharedStore {
                 guard !seenIds.contains(task.id) else { continue }
                 // Only carry over if the task existed on that past date
                 guard Calendar.current.startOfDay(for: pastDate) >= Calendar.current.startOfDay(for: task.createdAt) else { continue }
+                // Skip if recurrence was changed after this past date — the old schedule no longer applies
+                if let changedAt = task.recurrenceChangedAt,
+                   Calendar.current.startOfDay(for: pastDate) < Calendar.current.startOfDay(for: changedAt) { continue }
 
                 seenIds.insert(task.id)
                 result.append(TodayTask(
