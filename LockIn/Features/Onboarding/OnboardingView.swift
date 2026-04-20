@@ -144,7 +144,8 @@ struct OnboardingView: View {
     }
 
     private var healthKitStep: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+        let healthAvailable = StepCountService.shared.isAvailable
+        return VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
             Spacer()
 
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
@@ -152,7 +153,9 @@ struct OnboardingView: View {
                     .font(.system(.largeTitle, design: .default, weight: .semibold))
                     .foregroundStyle(DesignSystem.Colors.primaryText)
 
-                Text("Lock In reads your step count to automatically complete step goal tasks.")
+                Text(healthAvailable
+                    ? "Lock In reads your step count from Apple Health to automatically complete step goal tasks. Step data is read only, stays on your device, and is never shared."
+                    : "Lock In uses Apple Health on iPhone to read your step count and automatically complete step goal tasks. This device doesn't report step data, so step goals won't be available here — but the rest of Lock In works as usual.")
                     .font(.system(.body, weight: .regular))
                     .foregroundStyle(DesignSystem.Colors.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -161,22 +164,20 @@ struct OnboardingView: View {
             Spacer()
 
             VStack(spacing: DesignSystem.Spacing.sm) {
-                primaryButton("Allow Health Access") {
-                    _Concurrency.Task {
-                        try? await StepCountService.shared.requestAuthorization()
-                        advance()
+                if healthAvailable {
+                    primaryButton("Connect Apple Health") {
+                        _Concurrency.Task {
+                            try? await StepCountService.shared.requestAuthorization()
+                            advance()
+                        }
                     }
+                    skipButton { advance() }
+                } else {
+                    primaryButton("Continue") { advance() }
                 }
-                skipButton { advance() }
             }
         }
         .padding(DesignSystem.Spacing.lg)
-        .onAppear {
-            // Auto-skip on devices without HealthKit (simulator, iPad without motion)
-            if !StepCountService.shared.isAvailable {
-                withAnimation(.easeInOut(duration: 0.2)) { step = 3 }
-            }
-        }
     }
 
     private var notificationsStep: some View {
@@ -358,44 +359,46 @@ struct OnboardingView: View {
                     }
                 }
 
-                // Step goal toggle — only if HealthKit available
-                if StepCountService.shared.isAvailable {
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                        Toggle(isOn: $habitHasStepGoal) {
-                            Text("Step goal")
-                                .font(.system(.body))
-                                .foregroundStyle(DesignSystem.Colors.primaryText)
-                        }
-                        .tint(DesignSystem.Colors.accent)
-
-                        Text("Auto-completes task with steps")
-                            .font(.system(.caption))
-                            .foregroundStyle(DesignSystem.Colors.secondaryText)
+                // Step goal toggle — disabled when Apple Health unavailable on this device
+                let stepHealthAvailable = StepCountService.shared.isAvailable
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                    Toggle(isOn: $habitHasStepGoal) {
+                        Text("Step goal")
+                            .font(.system(.body))
+                            .foregroundStyle(stepHealthAvailable ? DesignSystem.Colors.primaryText : DesignSystem.Colors.secondaryText)
                     }
+                    .tint(DesignSystem.Colors.accent)
+                    .disabled(!stepHealthAvailable)
 
-                    if habitHasStepGoal {
-                        HStack(spacing: DesignSystem.Spacing.xs) {
-                            ForEach(stepOptions, id: \.value) { option in
-                                let isSelected = habitStepTarget == option.value
-                                Button { habitStepTarget = option.value } label: {
-                                    Text(option.label)
-                                        .font(.system(.caption, weight: isSelected ? .semibold : .regular))
-                                        .foregroundStyle(
-                                            isSelected
-                                                ? DesignSystem.Colors.background
-                                                : DesignSystem.Colors.secondaryText
-                                        )
-                                        .padding(.horizontal, DesignSystem.Spacing.sm)
-                                        .padding(.vertical, DesignSystem.Spacing.xs + 2)
-                                        .background(
-                                            isSelected
-                                                ? DesignSystem.Colors.accent
-                                                : DesignSystem.Colors.secondaryText.opacity(0.12)
-                                        )
-                                        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm))
-                                }
-                                .buttonStyle(.plain)
+                    Text(stepHealthAvailable
+                        ? "Auto-completes task using steps from Apple Health"
+                        : "Requires Apple Health step data (iPhone only)")
+                        .font(.system(.caption))
+                        .foregroundStyle(DesignSystem.Colors.secondaryText)
+                }
+
+                if stepHealthAvailable, habitHasStepGoal {
+                    HStack(spacing: DesignSystem.Spacing.xs) {
+                        ForEach(stepOptions, id: \.value) { option in
+                            let isSelected = habitStepTarget == option.value
+                            Button { habitStepTarget = option.value } label: {
+                                Text(option.label)
+                                    .font(.system(.caption, weight: isSelected ? .semibold : .regular))
+                                    .foregroundStyle(
+                                        isSelected
+                                            ? DesignSystem.Colors.background
+                                            : DesignSystem.Colors.secondaryText
+                                    )
+                                    .padding(.horizontal, DesignSystem.Spacing.sm)
+                                    .padding(.vertical, DesignSystem.Spacing.xs + 2)
+                                    .background(
+                                        isSelected
+                                            ? DesignSystem.Colors.accent
+                                            : DesignSystem.Colors.secondaryText.opacity(0.12)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm))
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                 }

@@ -224,44 +224,46 @@ struct EditTaskSheet: View {
                             }
                         }
 
-                        // Step goal toggle + chips — hidden if HealthKit unavailable
-                        if StepCountService.shared.isAvailable {
-                            VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                                Toggle(isOn: $hasStepGoal) {
-                                    Text("Step goal")
-                                        .font(.system(.body))
-                                        .foregroundStyle(DesignSystem.Colors.primaryText)
-                                }
-                                .tint(DesignSystem.Colors.accent)
-
-                                Text("Auto-completes task with steps")
-                                    .font(.system(.caption))
-                                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+                        // Step goal toggle + chips — disabled when Apple Health step data unavailable
+                        let stepHealthAvailable = StepCountService.shared.isAvailable
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                            Toggle(isOn: $hasStepGoal) {
+                                Text("Step goal")
+                                    .font(.system(.body))
+                                    .foregroundStyle(stepHealthAvailable ? DesignSystem.Colors.primaryText : DesignSystem.Colors.secondaryText)
                             }
+                            .tint(DesignSystem.Colors.accent)
+                            .disabled(!stepHealthAvailable)
 
-                            if hasStepGoal {
-                                HStack(spacing: DesignSystem.Spacing.xs) {
-                                    ForEach(stepOptions, id: \.value) { option in
-                                        let isSelected = stepTarget == option.value
-                                        Button { stepTarget = option.value } label: {
-                                            Text(option.label)
-                                                .font(.system(.caption, weight: isSelected ? .semibold : .regular))
-                                                .foregroundStyle(
-                                                    isSelected
-                                                        ? DesignSystem.Colors.background
-                                                        : DesignSystem.Colors.secondaryText
-                                                )
-                                                .padding(.horizontal, DesignSystem.Spacing.sm)
-                                                .padding(.vertical, DesignSystem.Spacing.xs + 2)
-                                                .background(
-                                                    isSelected
-                                                        ? DesignSystem.Colors.accent
-                                                        : DesignSystem.Colors.secondaryText.opacity(0.12)
-                                                )
-                                                .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm))
-                                        }
-                                        .buttonStyle(.plain)
+                            Text(stepHealthAvailable
+                                ? "Auto-completes task using steps from Apple Health"
+                                : "Requires Apple Health step data (iPhone only)")
+                                .font(.system(.caption))
+                                .foregroundStyle(DesignSystem.Colors.secondaryText)
+                        }
+
+                        if stepHealthAvailable, hasStepGoal {
+                            HStack(spacing: DesignSystem.Spacing.xs) {
+                                ForEach(stepOptions, id: \.value) { option in
+                                    let isSelected = stepTarget == option.value
+                                    Button { stepTarget = option.value } label: {
+                                        Text(option.label)
+                                            .font(.system(.caption, weight: isSelected ? .semibold : .regular))
+                                            .foregroundStyle(
+                                                isSelected
+                                                    ? DesignSystem.Colors.background
+                                                    : DesignSystem.Colors.secondaryText
+                                            )
+                                            .padding(.horizontal, DesignSystem.Spacing.sm)
+                                            .padding(.vertical, DesignSystem.Spacing.xs + 2)
+                                            .background(
+                                                isSelected
+                                                    ? DesignSystem.Colors.accent
+                                                    : DesignSystem.Colors.secondaryText.opacity(0.12)
+                                            )
+                                            .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.sm))
                                     }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
