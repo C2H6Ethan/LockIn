@@ -209,6 +209,13 @@ struct AddTaskSheet: View {
                             }
                             .tint(DesignSystem.Colors.accent)
                             .disabled(!stepHealthAvailable)
+                            .onChange(of: hasStepGoal) { _, on in
+                                if on, stepHealthAvailable {
+                                    _Concurrency.Task {
+                                        try? await StepCountService.shared.requestAuthorization()
+                                    }
+                                }
+                            }
 
                             Text(stepHealthAvailable
                                 ? "Auto-completes task using steps from Apple Health"

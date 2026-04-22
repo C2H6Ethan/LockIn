@@ -165,13 +165,12 @@ struct OnboardingView: View {
 
             VStack(spacing: DesignSystem.Spacing.sm) {
                 if healthAvailable {
-                    primaryButton("Connect Apple Health") {
+                    primaryButton("Continue") {
                         _Concurrency.Task {
                             try? await StepCountService.shared.requestAuthorization()
                             advance()
                         }
                     }
-                    skipButton { advance() }
                 } else {
                     primaryButton("Continue") { advance() }
                 }
@@ -198,13 +197,12 @@ struct OnboardingView: View {
             Spacer()
 
             VStack(spacing: DesignSystem.Spacing.sm) {
-                primaryButton("Allow Notifications") {
+                primaryButton("Continue") {
                     _Concurrency.Task {
                         try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
                         advance()
                     }
                 }
-                skipButton { advance() }
             }
         }
         .padding(DesignSystem.Spacing.lg)
@@ -230,7 +228,13 @@ struct OnboardingView: View {
             VStack(spacing: DesignSystem.Spacing.sm) {
                 if selection.applicationTokens.isEmpty {
                     primaryButton("Choose apps") { showingPicker = true }
-                    skipButton { advance() }
+                    Button { advance() } label: {
+                        Text("Skip for now")
+                            .font(.system(.subheadline))
+                            .foregroundStyle(DesignSystem.Colors.secondaryText)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, DesignSystem.Spacing.sm)
+                    }
                 } else {
                     Text("\(selection.applicationTokens.count) app\(selection.applicationTokens.count == 1 ? "" : "s") selected")
                         .font(.system(.subheadline))
@@ -527,16 +531,6 @@ struct OnboardingView: View {
                 .padding(.vertical, DesignSystem.Spacing.md)
                 .background(DesignSystem.Colors.accent)
                 .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md))
-        }
-    }
-
-    private func skipButton(action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text("Skip for now")
-                .font(.system(.subheadline))
-                .foregroundStyle(DesignSystem.Colors.secondaryText)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, DesignSystem.Spacing.sm)
         }
     }
 
