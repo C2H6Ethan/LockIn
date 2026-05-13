@@ -107,4 +107,14 @@ final class BlockingService {
         let request = UNNotificationRequest(identifier: "bypass-expiry", content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request)
     }
+
+    /// Called by DeviceActivityMonitor when the bypass expiry interval fires.
+    /// Guards against a stale callback clobbering a newer bypass that started within the
+    /// same DeviceActivity window (the 30-second race between intervalDidEnd and a second bypass).
+    func handleBypassExpiry() {
+        if let expires = store.unblockExpiresAt, expires > Date() { return }
+        store.unblockExpiresAt = nil
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["bypass-expiry"])
+        updateShieldsForCurrentHabitState()
+    }
 }

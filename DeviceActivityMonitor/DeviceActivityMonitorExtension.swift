@@ -11,6 +11,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
         if activity.rawValue == Constants.DeviceActivity.bypassExpiry {
             let store = SharedStore(suiteName: Constants.AppGroup.id)
+            if let expires = store.unblockExpiresAt, expires > Date() { return }
             store.unblockExpiresAt = nil
             UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["bypass-expiry"])
             applyOrRemoveShields()
@@ -29,6 +30,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         // Fallback in case intervalDidStart didn't fire for bypass expiry.
         guard activity.rawValue == Constants.DeviceActivity.bypassExpiry else { return }
         let store = SharedStore(suiteName: Constants.AppGroup.id)
+        if let expires = store.unblockExpiresAt, expires > Date() { return }
         store.unblockExpiresAt = nil
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["bypass-expiry"])
         applyOrRemoveShields()

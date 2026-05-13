@@ -238,4 +238,50 @@ final class BlockingServiceTests: XCTestCase {
         XCTAssertEqual(mockApplier.removeCallCount, 1)
         XCTAssertEqual(mockApplier.applyCallCount, 0)
     }
+
+    // MARK: - handleBypassExpiry (race condition: stale DA callback vs second bypass)
+
+    func testHandleBypassExpiry_noActiveWindow_clearsExpiry() {
+        store.unblockExpiresAt = Date().addingTimeInterval(-1)
+
+        sut.handleBypassExpiry()
+
+        XCTAssertNil(store.unblockExpiresAt)
+    }
+
+    func testHandleBypassExpiry_noActiveWindow_reappliesShields() {
+        let today = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Exercise", activeDays: [today], blocksApps: true))
+        store.selectedWebDomains = ["reddit.com"]
+        store.unblockExpiresAt = Date().addingTimeInterval(-1)
+
+        sut.handleBypassExpiry()
+
+        XCTAssertEqual(mockApplier.applyCallCount, 1)
+    }
+
+    func testHandleBypassExpiry_secondBypassActive_doesNotClobberWindow() {
+        // Regression: first bypass's stale intervalDidEnd fired 5s into second bypass,
+        // clearing unblockExpiresAt and re-blocking apps mid-window.
+        let secondBypassExpiry = Date().addingTimeInterval(15 * 60)
+        store.unblockExpiresAt = secondBypassExpiry
+
+        sut.handleBypassExpiry()
+
+        XCTAssertEqual(store.unblockExpiresAt, secondBypassExpiry)
+        XCTAssertEqual(mockApplier.applyCallCount, 0)
+        XCTAssertEqual(mockApplier.removeCallCount, 0)
+    }
+
+    func testHandleBypassExpiry_secondBypassActive_withIncompleteTasks_doesNotReblock() {
+        let today = Calendar.current.component(.weekday, from: Date())
+        store.addTask(Task(title: "Exercise", activeDays: [today], blocksApps: true))
+        store.selectedWebDomains = ["reddit.com"]
+        store.unblockExpiresAt = Date().addingTimeInterval(15 * 60)
+
+        sut.handleBypassExpiry()
+
+        XCTAssertEqual(mockApplier.applyCallCount, 0)
+        XCTAssertEqual(mockApplier.removeCallCount, 0)
+    }
 }
