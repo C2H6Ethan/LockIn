@@ -1,13 +1,14 @@
+import LockInCore
 import SwiftUI
 
 /// Every visual constant in the app. No cards, no borders: typography and whitespace only.
 enum DesignSystem {
     enum Colors {
-        static let background = Color(red: 0x0A / 255, green: 0x0A / 255, blue: 0x0A / 255)
-        static let primaryText = Color(red: 0xF5 / 255, green: 0xF5 / 255, blue: 0xF0 / 255)
-        static let secondaryText = Color(red: 0x6B / 255, green: 0x6B / 255, blue: 0x6B / 255)
-        static let accent = Color(red: 0xE8 / 255, green: 0xD5 / 255, blue: 0xA3 / 255)
-        static let destructive = Color(red: 0xFF / 255, green: 0x44 / 255, blue: 0x44 / 255)
+        static let background = Color(Palette.background)
+        static let primaryText = Color(Palette.primaryText)
+        static let secondaryText = Color(Palette.secondaryText)
+        static let accent = Color(Palette.accent)
+        static let destructive = Color(Palette.destructive)
     }
 
     enum Spacing {
@@ -23,5 +24,11 @@ enum DesignSystem {
     enum CornerRadius {
         static let sm: CGFloat = 6
         static let md: CGFloat = 12
+    }
+}
+
+private extension Color {
+    init(_ rgb: Palette.RGB) {
+        self.init(red: rgb.red, green: rgb.green, blue: rgb.blue)
     }
 }

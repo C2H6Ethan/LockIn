@@ -1,6 +1,6 @@
 # 013: Shield appearance and action
 
-Status: todo
+Status: done (device checks pending)
 Depends on: 005
 
 ## Goal
@@ -21,3 +21,10 @@ The system Shield looks like LockIn, and its button leads into the app.
 
 ## Tests first
 - Deep-link parser tests.
+
+## Notes
+- Kept v2's layout: the primary button "Lock In" closes the Shield, and the secondary "Earn access" posts a notification deep-linking to `lockin://bypass`. Closing should be the easy, prominent choice.
+- Title: a random line from v2's set. Subtitle: a random v2 header plus up to three owed Required Tasks ("+N more").
+- Colors live in `LockInCore.Palette`, shared by `DesignSystem` and the extension.
+- `ShieldDecision.owedTasks` gives the Shield the same answer as enforcement.
+- Notification taps route through `AppDelegate` and `DeepLinkRouter`. Until 015, both links land on Today.

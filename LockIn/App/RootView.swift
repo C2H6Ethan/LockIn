@@ -5,14 +5,16 @@ import SwiftUI
 /// Top-level navigation.
 struct RootView: View {
     let environment: AppEnvironment
+    let router: DeepLinkRouter
     @State private var formTask: FormTarget?
     @State private var dataVersion = 0
     @State private var recap: RecapModel?
     @State private var path: [Route] = []
     @State private var needsOnboarding: Bool
 
-    init(environment: AppEnvironment) {
+    init(environment: AppEnvironment, router: DeepLinkRouter) {
         self.environment = environment
+        self.router = router
         _needsOnboarding = State(initialValue: !environment.store.read(.settings).hasCompletedOnboarding)
     }
 
@@ -95,6 +97,16 @@ struct RootView: View {
             environment.enforcement.refresh(reason: "foreground")
             if recap == nil { recap = RecapModel.pending(store: environment.store) }
             dataVersion += 1
+        }
+        .onChange(of: router.pending) { _, link in
+            guard let link else { return }
+            router.pending = nil
+            switch link {
+            case .today, .bypass:
+                // The walking Bypass screen arrives in 015; until then both links land on Today.
+                formTask = nil
+                path = []
+            }
         }
         .fullScreenCover(item: $recap) { model in
             RecapView(model: model) {
