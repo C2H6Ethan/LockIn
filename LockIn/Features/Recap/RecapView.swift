@@ -48,16 +48,9 @@ struct RecapView: View {
         }
         .background(DesignSystem.Colors.background)
         .safeAreaInset(edge: .bottom) {
-            Button {
+            PrimaryButton("Start today") {
                 model.acknowledge()
                 onDone()
-            } label: {
-                Text("Start today")
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(DesignSystem.Colors.background)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DesignSystem.Spacing.md)
-                    .background(DesignSystem.Colors.accent, in: RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.md))
             }
             .padding(.horizontal, DesignSystem.Spacing.lg)
             .padding(.bottom, DesignSystem.Spacing.lg)

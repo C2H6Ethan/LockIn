@@ -19,7 +19,7 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 | 009 | [Missed-Day Recap](009-missed-day-recap.md) | done |
 | 010 | [Reminder](010-reminder.md) | done (device spike pending) |
 | 011 | [Settings](011-settings.md) | done |
-| 012 | [Onboarding](012-onboarding.md) | todo |
+| 012 | [Onboarding](012-onboarding.md) | done (device check pending) |
 | 013 | [Shield appearance and action](013-shield-appearance-and-action.md) | todo |
 | 014 | [Import v2 data](014-import-v2-data.md) | todo |
 | 015 | [Bypass](015-bypass.md) | todo |

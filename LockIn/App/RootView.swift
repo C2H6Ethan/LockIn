@@ -9,6 +9,12 @@ struct RootView: View {
     @State private var dataVersion = 0
     @State private var recap: RecapModel?
     @State private var path: [Route] = []
+    @State private var needsOnboarding: Bool
+
+    init(environment: AppEnvironment) {
+        self.environment = environment
+        _needsOnboarding = State(initialValue: !environment.store.read(.settings).hasCompletedOnboarding)
+    }
 
     private enum Route: Hashable { case settings }
     @Environment(\.scenePhase) private var scenePhase
@@ -26,6 +32,20 @@ struct RootView: View {
     }
 
     var body: some View {
+        if needsOnboarding {
+            OnboardingView(
+                model: .live(environment: environment, onFinish: {
+                    environment.stateDidChange()
+                    withAnimation { needsOnboarding = false }
+                }),
+                environment: environment
+            )
+        } else {
+            main
+        }
+    }
+
+    private var main: some View {
         NavigationStack(path: $path) {
             TodayView(
                 model: TodayModel(store: environment.store, onChange: environment.stateDidChange),

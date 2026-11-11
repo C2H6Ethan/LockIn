@@ -1,6 +1,6 @@
 # 012: Onboarding
 
-Status: todo
+Status: done (device check pending)
 Depends on: 011
 
 ## Goal
@@ -23,3 +23,8 @@ A first-run flow that ends with blocking working.
 
 ## Tests first
 - Flow state-machine tests: step order, and the denied-authorization branch.
+
+## Notes
+- Steps: welcome, how blocking works (requests Screen Time access, retries until allowed), Blocklist (skippable), first Task via the shared Task form (skippable), notifications, done.
+- v2's Health and walking-Bypass explainer steps return with 015/016, and only appear when relevant.
+- `PrimaryButton` and `SecondaryButton` in `LockIn/Components` are shared with the recap.
