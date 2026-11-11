@@ -1,0 +1,40 @@
+import Foundation
+
+/// Typed access to every persisted document. Reads are pure; writes are explicit.
+/// Decode only what you need: extensions have a tight memory budget.
+public struct LockInStore: Sendable {
+    public static let currentSchemaVersion = 1
+    /// How many Days of completions to keep.
+    public static let completionRetentionDays = 120
+
+    private let storage: any KeyValueStorage
+    private let onCorruptDocument: @Sendable (String, Error) -> Void
+
+    public init(storage: any KeyValueStorage, onCorruptDocument: @escaping @Sendable (String, Error) -> Void = { _, _ in }) {
+        self.storage = storage
+        self.onCorruptDocument = onCorruptDocument
+    }
+
+    /// The stored value, or the document's default when absent or unreadable. Never throws, never crashes.
+    public func read<V>(_ document: Document<V>) -> V {
+        guard let data = storage.data(forKey: document.key) else { return document.defaultValue() }
+        do {
+            return try JSONDecoder().decode(V.self, from: data)
+        } catch {
+            onCorruptDocument(document.key, error)
+            return document.defaultValue()
+        }
+    }
+
+    public func write<V>(_ value: V, to document: Document<V>) {
+        // Encoding a Codable value we built ourselves cannot fail in practice; surface it loudly if it ever does.
+        let data = try! JSONEncoder().encode(value)
+        storage.set(data, forKey: document.key)
+    }
+
+    /// Writes completions pruned to the last `completionRetentionDays` Days.
+    public func saveCompletions(_ log: CompletionLog, today: DayKey, calendar: Calendar) {
+        let first = today.adding(days: -(Self.completionRetentionDays - 1), in: calendar)
+        write(log.pruned(keepingFrom: first), to: .completions)
+    }
+}

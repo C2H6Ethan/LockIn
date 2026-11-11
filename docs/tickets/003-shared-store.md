@@ -1,6 +1,6 @@
 # 003: Shared store
 
-Status: todo
+Status: done
 Depends on: 002
 
 ## Goal
@@ -8,7 +8,7 @@ One versioned persistence layer in the App Group that every target reads and wri
 
 ## Scope
 - `LockInStore` protocol in `LockInCore`, with an in-memory implementation for tests.
-- `AppGroupStore` (UserDefaults suite `group.com.ethanbaumgartner.lockin`) in `LockInPlatform`.
+- `UserDefaultsStorage.appGroup()` (UserDefaults suite `group.com.ethanbaumgartner.lockin`). Implemented in `LockInCore` behind a `KeyValueStorage` protocol, since UserDefaults is Foundation and needs no adapter.
   - Call `synchronize()` after every write.
   - All keys are prefixed `v3.` so they never collide with v2 data (014 imports from the old keys).
   - Store `v3.schemaVersion`.
@@ -29,3 +29,6 @@ One versioned persistence layer in the App Group that every target reads and wri
 - Round-trip tests against the in-memory store and against a throwaway UserDefaults suite.
 - Corrupt JSON returns the default.
 - Pruning keeps exactly 120 Days.
+
+## Notes
+- Blocklist, day-record and event-log documents are added by the tickets that introduce them (004, 008, 005).
