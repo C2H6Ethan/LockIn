@@ -35,10 +35,6 @@ public struct Enforcement {
     public static func live(source: Event.Source) -> Enforcement? {
         guard let storage = UserDefaultsStorage.appGroup() else { return nil }
         let store = LockInStore.logging(storage: storage, source: source)
-        // Whichever process runs first after the update imports v2, so the user needn't open the app.
-        if let v2 = UserDefaults(suiteName: AppGroup.id) {
-            V2Migration.runIfNeeded(store: store, v2: v2)
-        }
         return Enforcement(
             store: store,
             registrar: ScheduleRegistrar(),
@@ -123,8 +119,8 @@ public struct Enforcement {
         let ended = log.expire(endingAt: end, now: now)
         if ended != nil { store.write(log, to: .bypasses) }
         let shielded = refresh(reason: "intervalDidStart \(activityName)\(ended == nil ? " (stale)" : "")", now: now)
-        if ended != nil, shielded {
-            poster.post(id: Self.bypassNotificationID, title: "Bypass over.", body: "Blocking is back on.", deepLink: Self.todayURL)
+        if let notice = BypassLog.endNotice(ended: ended, shieldUp: shielded) {
+            poster.post(id: Self.bypassNotificationID, title: notice.title, body: notice.body, deepLink: Self.todayURL)
         }
     }
 

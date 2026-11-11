@@ -12,6 +12,7 @@ struct AppEnvironment {
     let places: PlaceMonitor
 
     static func live() -> AppEnvironment {
+        V2Migration.runIfNeededInAppGroup(source: .app)
         guard let enforcement = Enforcement.live(source: .app) else {
             fatalError("App Group \(AppGroup.id) is missing from the entitlements.")
         }

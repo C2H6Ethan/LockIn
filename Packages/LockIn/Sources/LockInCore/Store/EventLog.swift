@@ -39,9 +39,15 @@ extension Document where Value == EventLog {
 extension LockInStore {
     /// A store that records corrupt documents in the event log.
     public static func logging(storage: any KeyValueStorage, source: Event.Source) -> LockInStore {
-        LockInStore(storage: storage, onCorruptDocument: { key, error in
-            LockInStore(storage: storage).log("Corrupt \(key): \(error)", source: source)
-        })
+        LockInStore(
+            storage: storage,
+            onCorruptDocument: { key, error in
+                LockInStore(storage: storage).log("Corrupt \(key): \(error)", source: source)
+            },
+            onWriteFailure: { key, error in
+                LockInStore(storage: storage).log("Write failed \(key): \(error)", source: source)
+            }
+        )
     }
 
     public func log(_ message: String, source: Event.Source, at date: Date = Date()) {

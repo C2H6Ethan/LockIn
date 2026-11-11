@@ -9,10 +9,16 @@ public struct LockInStore: Sendable {
 
     private let storage: any KeyValueStorage
     private let onCorruptDocument: @Sendable (String, Error) -> Void
+    private let onWriteFailure: @Sendable (String, Error) -> Void
 
-    public init(storage: any KeyValueStorage, onCorruptDocument: @escaping @Sendable (String, Error) -> Void = { _, _ in }) {
+    public init(
+        storage: any KeyValueStorage,
+        onCorruptDocument: @escaping @Sendable (String, Error) -> Void = { _, _ in },
+        onWriteFailure: @escaping @Sendable (String, Error) -> Void = { _, _ in }
+    ) {
         self.storage = storage
         self.onCorruptDocument = onCorruptDocument
+        self.onWriteFailure = onWriteFailure
     }
 
     /// The stored value, or the document's default when absent or unreadable. Never throws, never crashes.
@@ -26,10 +32,14 @@ public struct LockInStore: Sendable {
         }
     }
 
+    /// Never crashes: a value that can't be encoded (e.g. a NaN coordinate) is reported and the stored
+    /// value is left unchanged. A crash here could take down the DeviceActivityMonitor extension.
     public func write<V>(_ value: V, to document: Document<V>) {
-        // Encoding a Codable value we built ourselves cannot fail in practice; surface it loudly if it ever does.
-        let data = try! JSONEncoder().encode(value)
-        storage.set(data, forKey: document.key)
+        do {
+            storage.set(try JSONEncoder().encode(value), forKey: document.key)
+        } catch {
+            onWriteFailure(document.key, error)
+        }
     }
 
     /// Writes completions pruned to the last `completionRetentionDays` Days.

@@ -11,6 +11,14 @@ public enum V2Migration {
         case notNeeded, imported, failed
     }
 
+    /// Startup step for the app and the DeviceActivityMonitor extension: whichever runs first after the
+    /// update imports v2, so the user never has to open the app (ADR 0001). Cheap once done.
+    @discardableResult
+    public static func runIfNeededInAppGroup(source: Event.Source) -> Outcome {
+        guard let storage = UserDefaultsStorage.appGroup(), let v2 = UserDefaults(suiteName: AppGroup.id) else { return .notNeeded }
+        return runIfNeeded(store: .logging(storage: storage, source: source), v2: v2)
+    }
+
     /// Imports v2 data unless this store has already been claimed by v3. Never throws, never retries.
     /// v2 keys are left untouched.
     @discardableResult

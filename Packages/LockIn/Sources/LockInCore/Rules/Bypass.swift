@@ -55,6 +55,13 @@ public struct BypassLog: Hashable, Codable, Sendable {
         return bypass
     }
 
+    /// The notification to post after a bypass-end callback: only when it ended the current window
+    /// (`ended` non-nil) and blocking actually came back. Tasks finished during the Bypass mean no notice.
+    public static func endNotice(ended: Bypass?, shieldUp: Bool) -> Reminder.Content? {
+        guard ended != nil, shieldUp else { return nil }
+        return Reminder.Content(title: "Bypass over.", body: "Blocking is back on.")
+    }
+
     /// Handles a bypass-end callback. Acts only if `end` is the current window's end; a stale callback for an
     /// older window returns `nil` and changes nothing. Returns the Bypass that just ended.
     public mutating func expire(endingAt end: Date, now: Date) -> Bypass? {

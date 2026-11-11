@@ -28,7 +28,7 @@ Existing users keep their Tasks, Streak and Blocklist when updating. If anything
 
 ## Notes
 - Pure mapping in `LockInCore/Import/V2Import.swift`; reading v2 defaults and writing v3 in `LockInPlatform/V2Migration.swift`.
-- Runs from `Enforcement.live`, so whichever process starts first after the update (app or monitor extension) imports. The user doesn't have to open the app (ADR 0001).
+- Runs from `V2Migration.runIfNeededInAppGroup`, called explicitly at startup by the app and by the monitor extension, so whichever process starts first after the update imports. The user doesn't have to open the app (ADR 0001). It used to run hidden inside `Enforcement.live`, which made a factory call write data.
 - Triggers when `v3.schemaVersion` is absent and v2 left `tasks` or `hasCompletedOnboarding`. `schemaVersion` is written on every outcome, including failure, so a broken import is never retried over v3 data.
 - One-time Tasks: dropped if v2 shows them completed; otherwise due today (v2 showed them from their start date until done).
 - Only today's completions are imported. Earlier history isn't needed, because the Streak continues via the seed.
