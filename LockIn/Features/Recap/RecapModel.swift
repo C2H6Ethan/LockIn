@@ -95,6 +95,31 @@ final class RecapModel: Identifiable {
         recap.previousStreak > 0 ? "Streak was \(recap.previousStreak), now 0." : nil
     }
 
+    // MARK: Streak Freeze
+
+    private var today: DayKey { DayKey(now(), calendar: calendar) }
+
+    /// The Missed Day a Streak Freeze can be spent on, if the recap offers one.
+    var freezeOffer: DayKey? {
+        StreakFreeze.offer(recap: recap, lastUsed: store.read(.settings).streakFreezeUsedOn, today: today, calendar: calendar)
+    }
+
+    var freezeLabel: String? {
+        freezeOffer.map { _ in "Use Streak Freeze to keep your \(recap.previousStreak)\u{2011}day Streak" }
+    }
+
+    /// Spends this week's Freeze on the offered Missed Day, then acknowledges the recap.
+    func useFreeze() {
+        guard let day = freezeOffer else { return }
+        var records = store.read(.dayRecords)
+        StreakFreeze.apply(to: &records, day: day)
+        store.write(records, to: .dayRecords)
+        var settings = store.read(.settings)
+        settings.streakFreezeUsedOn = today
+        store.write(settings, to: .settings)
+        acknowledge()
+    }
+
     /// Marks every listed Day as seen. Only called from the button, so a killed app shows the recap again.
     func acknowledge() {
         guard let newest = recap.missedDays.first?.day else { return }

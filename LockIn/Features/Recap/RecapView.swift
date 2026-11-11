@@ -48,9 +48,20 @@ struct RecapView: View {
         }
         .background(DesignSystem.Colors.background)
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton("Start today") {
-                model.acknowledge()
-                onDone()
+            VStack(spacing: DesignSystem.Spacing.md) {
+                if let label = model.freezeLabel {
+                    Button(label) {
+                        model.useFreeze()
+                        onDone()
+                    }
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(DesignSystem.Colors.accent)
+                    .multilineTextAlignment(.center)
+                }
+                PrimaryButton("Start today") {
+                    model.acknowledge()
+                    onDone()
+                }
             }
             .padding(.horizontal, DesignSystem.Spacing.lg)
             .padding(.bottom, DesignSystem.Spacing.lg)

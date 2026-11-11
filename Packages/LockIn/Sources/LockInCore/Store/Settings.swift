@@ -13,6 +13,8 @@ public struct Settings: Hashable, Codable, Sendable {
     public var streakSeed: StreakSeed?
     /// The newest Missed Day the user has seen in the Missed-Day Recap.
     public var recapAcknowledgedThrough: DayKey?
+    /// The Day a Streak Freeze was last spent, which makes it unavailable for the rest of that ISO week.
+    public var streakFreezeUsedOn: DayKey?
 
     public init(reminderTime: TimeOfDay? = Settings.defaultReminderTime, hasCompletedOnboarding: Bool = false, firstDay: DayKey? = nil, streakSeed: StreakSeed? = nil) {
         self.reminderTime = reminderTime
@@ -22,7 +24,7 @@ public struct Settings: Hashable, Codable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case reminderTime, hasCompletedOnboarding, firstDay, streakSeed, recapAcknowledgedThrough
+        case reminderTime, hasCompletedOnboarding, firstDay, streakSeed, recapAcknowledgedThrough, streakFreezeUsedOn
     }
 
     /// Missing fields fall back to defaults so older documents keep decoding.
@@ -33,6 +35,7 @@ public struct Settings: Hashable, Codable, Sendable {
         firstDay = try c.decodeIfPresent(DayKey.self, forKey: .firstDay)
         streakSeed = try c.decodeIfPresent(StreakSeed.self, forKey: .streakSeed)
         recapAcknowledgedThrough = try c.decodeIfPresent(DayKey.self, forKey: .recapAcknowledgedThrough)
+        streakFreezeUsedOn = try c.decodeIfPresent(DayKey.self, forKey: .streakFreezeUsedOn)
     }
 
     /// `reminderTime` is always written, including as `null`, so "off" survives a round trip
@@ -44,5 +47,6 @@ public struct Settings: Hashable, Codable, Sendable {
         try c.encodeIfPresent(firstDay, forKey: .firstDay)
         try c.encodeIfPresent(streakSeed, forKey: .streakSeed)
         try c.encodeIfPresent(recapAcknowledgedThrough, forKey: .recapAcknowledgedThrough)
+        try c.encodeIfPresent(streakFreezeUsedOn, forKey: .streakFreezeUsedOn)
     }
 }

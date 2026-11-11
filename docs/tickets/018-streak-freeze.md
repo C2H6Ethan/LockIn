@@ -1,6 +1,6 @@
 # 018: Streak Freeze
 
-Status: todo
+Status: done
 Depends on: 009
 
 ## Goal
@@ -20,3 +20,9 @@ Streak Freeze, Missed-Day Recap, Kept Day
 - Offer eligibility: 1 Missed Day versus 2, Freeze used this week, and a previous Streak of 0.
 - The Streak after freezing.
 - The weekly reset happens at the ISO week boundary.
+
+## Notes
+- Core: `StreakFreeze.isAvailable`, `offer` and `apply`. The ISO week is computed in the device's time zone, and a truncated recap never offers a Freeze.
+- `Settings.streakFreezeUsedOn` records the Day it was spent.
+- "Use Streak Freeze…" is an accent text button above "Start today". Using it freezes the Day, records the use, acknowledges the recap and closes it.
+- Debug: `-seed -seedMissedYesterday` seeds a 12-day Streak broken only by yesterday.

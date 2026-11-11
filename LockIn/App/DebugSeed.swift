@@ -27,18 +27,20 @@ enum DebugSeed {
         store.write(settings, to: .settings)
         store.write([:], to: .dayRecords)
         if ProcessInfo.processInfo.arguments.contains("-seedMissed") { seedMissedDays(store: store, today: today, calendar: calendar) }
+        if ProcessInfo.processInfo.arguments.contains("-seedMissedYesterday") { seedMissedDays(store: store, today: today, calendar: calendar, missedCount: 1) }
     }
 
     /// `-seed -seedMissed`: a 12-day Streak broken by three Missed Days, for the recap.
-    private static func seedMissedDays(store: LockInStore, today: DayKey, calendar: Calendar) {
-        let first = today.adding(days: -15, in: calendar)
+    /// `-seedMissedYesterday`: broken by only yesterday, so the recap offers a Streak Freeze.
+    private static func seedMissedDays(store: LockInStore, today: DayKey, calendar: Calendar, missedCount: Int = 3) {
+        let first = today.adding(days: -(12 + missedCount), in: calendar)
         var records: [DayKey: DayRecord] = [:]
         for offset in 0..<12 {
             let d = first.adding(days: offset, in: calendar)
             records[d] = DayRecord(day: d, requiredDue: [], completedRequired: [], outcome: .kept)
         }
         let missed: [[String]] = [["Read 20 pages", "Stretch", "Journal", "Meditate", "Call mom", "Drink water", "Walk"], ["Morning workout"], ["Read 20 pages", "Go for a walk"]]
-        for (i, titles) in missed.enumerated() {
+        for (i, titles) in missed.suffix(missedCount).enumerated() {
             let d = first.adding(days: 12 + i, in: calendar)
             records[d] = DayRecord(day: d, requiredDue: titles.map { TaskSnapshot(id: UUID(), title: $0) }, completedRequired: [], outcome: .missed)
         }
@@ -47,6 +49,7 @@ enum DebugSeed {
         settings.firstDay = first
         settings.streakSeed = nil
         settings.recapAcknowledgedThrough = nil
+        settings.streakFreezeUsedOn = nil
         store.write(settings, to: .settings)
     }
 }
