@@ -11,6 +11,7 @@ struct RootView: View {
     @State private var recap: RecapModel?
     @State private var path: [Route] = []
     @State private var needsOnboarding: Bool
+    @State private var showsBypass = false
 
     init(environment: AppEnvironment, router: DeepLinkRouter) {
         self.environment = environment
@@ -88,6 +89,7 @@ struct RootView: View {
         .onAppear {
             if DebugLaunch.opensNewTask { formTask = .new }
             if DebugLaunch.opensSettings { Task { path = [.settings] } }
+            if DebugLaunch.opensBypass { showsBypass = true }
         }
         #endif
         .onChange(of: scenePhase, initial: true) { _, phase in
@@ -98,15 +100,20 @@ struct RootView: View {
             if recap == nil { recap = RecapModel.pending(store: environment.store) }
             dataVersion += 1
         }
-        .onChange(of: router.pending) { _, link in
+        .onChange(of: router.pending, initial: true) { _, link in
+            // `initial` covers a cold launch from a notification tap.
             guard let link else { return }
             router.pending = nil
-            switch link {
-            case .today, .bypass:
-                // The walking Bypass screen arrives in 015; until then both links land on Today.
-                formTask = nil
-                path = []
-            }
+            formTask = nil
+            path = []
+            showsBypass = link == .bypass
+        }
+        .fullScreenCover(isPresented: $showsBypass, onDismiss: { dataVersion += 1 }) {
+            BypassView(model: BypassModel(
+                store: environment.store,
+                counter: PedometerStepCounter(),
+                startBypass: { environment.enforcement.startBypass() }
+            ))
         }
         .fullScreenCover(item: $recap) { model in
             RecapView(model: model) {

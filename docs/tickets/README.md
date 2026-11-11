@@ -22,7 +22,7 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 | 012 | [Onboarding](012-onboarding.md) | done (device check pending) |
 | 013 | [Shield appearance and action](013-shield-appearance-and-action.md) | done (device checks pending) |
 | 014 | [Import v2 data](014-import-v2-data.md) | done (device check pending) |
-| 015 | [Bypass](015-bypass.md) | todo |
+| 015 | [Bypass](015-bypass.md) | done (device checks pending) |
 | 016 | [Step-Goal Tasks](016-step-goal-tasks.md) | todo |
 | 017 | [Location Tasks](017-location-tasks.md) | todo |
 | 018 | [Streak Freeze](018-streak-freeze.md) | todo |

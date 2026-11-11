@@ -7,5 +7,7 @@ enum DebugLaunch {
     static var opensNewTask: Bool { ProcessInfo.processInfo.arguments.contains("-openNewTask") }
     /// `-openSettings` pushes Settings on launch.
     static var opensSettings: Bool { ProcessInfo.processInfo.arguments.contains("-openSettings") }
+    /// `-openBypass` opens the walk screen on launch.
+    static var opensBypass: Bool { ProcessInfo.processInfo.arguments.contains("-openBypass") }
 }
 #endif

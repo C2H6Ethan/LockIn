@@ -14,6 +14,7 @@ public struct Enforcement {
     private let source: Event.Source
 
     public static let reminderNotificationID = "reminder"
+    public static let bypassNotificationID = "bypass-over"
     public static let todayURL = URL(string: "lockin://today")!
 
     public init(store: LockInStore, registrar: ScheduleRegistrar, enforcer: ShieldEnforcer, poster: NotificationPoster = UserNotificationPoster(), calendar: Calendar = .current, source: Event.Source) {
@@ -43,21 +44,52 @@ public struct Enforcement {
 
     public var storeForReading: LockInStore { store }
 
-    /// `reason` is recorded in the event log, e.g. "launch" or "intervalDidStart day".
-    public func refresh(reason: String, now: Date = Date()) {
+    /// `reason` is recorded in the event log, e.g. "launch" or "intervalDidStart day". Returns whether the Shield is up.
+    @discardableResult
+    public func refresh(reason: String, now: Date = Date()) -> Bool {
         let today = DayKey(now, calendar: calendar)
         finalizeEndedDays(today: today, now: now)
-        let desired = ScheduledActivity.desired(tasks: store.read(.tasks), reminderTime: store.read(.settings).reminderTime, today: today)
-        let report = registrar.sync(desired: desired)
+        let desired = ScheduledActivity.desired(
+            tasks: store.read(.tasks),
+            reminderTime: store.read(.settings).reminderTime,
+            today: today,
+            bypasses: store.read(.bypasses),
+            now: now
+        )
+        let report = registrar.sync(desired: desired, calendar: calendar)
         if let summary = report.summary { store.log(summary, source: source, at: now) }
         let shielded = enforcer.reevaluate(now: now)
         store.log("\(reason): shield \(shielded ? "up" : "down")", source: source, at: now)
+        return shielded
+    }
+
+    /// Starts a Bypass window now (the walk is verified by the caller) and lifts the Shield.
+    @discardableResult
+    public func startBypass(now: Date = Date()) -> Bypass {
+        var log = store.read(.bypasses)
+        let bypass = log.start(at: now, calendar: calendar)
+        store.write(log, to: .bypasses)
+        store.log("Bypass started until \(bypass.end.formatted(date: .omitted, time: .shortened))", source: source, at: now)
+        refresh(reason: "bypass started", now: now)
+        return bypass
     }
 
     /// Called by the DeviceActivityMonitor extension when an activity's interval starts.
     public func intervalDidStart(activityName: String, now: Date = Date()) {
-        refresh(reason: "intervalDidStart \(activityName)", now: now)
-        if case .reminder = ScheduledActivity(name: activityName) { postReminderIfOwed(now: now) }
+        let activity = ScheduledActivity(name: activityName)
+        guard case .bypassEnd(let end) = activity else {
+            refresh(reason: "intervalDidStart \(activityName)", now: now)
+            if case .reminder = activity { postReminderIfOwed(now: now) }
+            return
+        }
+        // Only the current window's own callback may end it; a stale one just re-evaluates.
+        var log = store.read(.bypasses)
+        let ended = log.expire(endingAt: end, now: now)
+        if ended != nil { store.write(log, to: .bypasses) }
+        let shielded = refresh(reason: "intervalDidStart \(activityName)\(ended == nil ? " (stale)" : "")", now: now)
+        if ended != nil, shielded {
+            poster.post(id: Self.bypassNotificationID, title: "Bypass over.", body: "The Shield is back up.", deepLink: Self.todayURL)
+        }
     }
 
     private func postReminderIfOwed(now: Date) {

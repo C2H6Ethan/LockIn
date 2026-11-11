@@ -22,6 +22,7 @@ public struct ShieldEnforcer {
             at: now,
             tasks: store.read(.tasks),
             completions: store.read(.completions),
+            bypasses: store.read(.bypasses),
             calendar: calendar
         )
         applier.update(shielded: shielded, blocklist: store.read(.blocklist))

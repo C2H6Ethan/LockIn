@@ -55,7 +55,7 @@ public struct ScheduleRegistrar {
     }
 
     @discardableResult
-    public func sync(desired: Set<ScheduledActivity>) -> Report {
+    public func sync(desired: Set<ScheduledActivity>, calendar: Calendar = .current) -> Report {
         var report = Report()
         let registered = Set(center.activityNames)
         let desiredByName = Dictionary(uniqueKeysWithValues: desired.map { ($0.name, $0) })
@@ -69,7 +69,7 @@ public struct ScheduleRegistrar {
 
         for name in desiredByName.keys.sorted() where !registered.contains(name) {
             do {
-                try center.startMonitoring(name, during: Self.schedule(for: desiredByName[name]!))
+                try center.startMonitoring(name, during: Self.schedule(for: desiredByName[name]!, calendar: calendar))
                 report.started.append(name)
             } catch {
                 report.failures.append(.init(name: name, reason: String(describing: error)))
@@ -78,9 +78,18 @@ public struct ScheduleRegistrar {
         return report
     }
 
-    /// Every activity repeats daily from its start to 23:59. The 23:30 cap on Start Times keeps intervals ≥ 29 minutes.
-    public static func schedule(for activity: ScheduledActivity) -> DeviceActivitySchedule {
-        let start = activity.intervalStart
+    /// Repeating activities run daily from their start to 23:59; the 23:30 cap on Start Times keeps intervals ≥ 29 minutes.
+    /// A `bypassEnd` runs once, starting at the Bypass end (DeviceActivity needs intervals of at least 15 minutes).
+    public static func schedule(for activity: ScheduledActivity, calendar: Calendar = .current) -> DeviceActivitySchedule {
+        guard let start = activity.intervalStart else {
+            guard case .bypassEnd(let end) = activity else { preconditionFailure("only bypassEnd is one-shot") }
+            let parts: Set<Calendar.Component> = [.year, .month, .day, .hour, .minute, .second]
+            return DeviceActivitySchedule(
+                intervalStart: calendar.dateComponents(parts, from: end),
+                intervalEnd: calendar.dateComponents(parts, from: end.addingTimeInterval(16 * 60)),
+                repeats: false
+            )
+        }
         return DeviceActivitySchedule(
             intervalStart: DateComponents(hour: start.hour, minute: start.minute),
             intervalEnd: DateComponents(hour: 23, minute: 59),

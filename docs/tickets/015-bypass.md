@@ -1,6 +1,6 @@
 # 015: Bypass
 
-Status: todo
+Status: done (device checks pending)
 Depends on: 013
 
 ## Goal
@@ -31,3 +31,13 @@ Bypass, Shield
 - `ShieldDecision` with an active or expired Bypass.
 - The step-cost table.
 - A stale `bypass-end` callback for an older window is ignored.
+
+## Notes
+- Core: `BypassLog` (step cost, 15-minute window, today's count, pruned to two Days); `ShieldDecision.shouldShield` takes it.
+- `bypass-end-<epoch seconds>` is a one-shot DeviceActivity schedule from the end to end + 16 minutes. It's part of `ScheduledActivity.desired` while a Bypass is pending, so the idempotent registrar owns it like every other activity.
+- Race safety: `BypassLog.expire(endingAt:now:)` acts only when the callback's end matches the current window. A callback up to 60 s early still ends it, so an early fire can't leave the Shield down. A stale callback just re-evaluates.
+- Starting a Bypass while one is active cuts the old one short, so there is only ever one window.
+- "Bypass over." is posted only if the Shield actually came back up.
+- The Shield's "Earn access" notification now says how many steps the next Bypass costs.
+- Walk screen states: walking, active ("You gave in." from v2), nothing owed, steps unavailable. Debug: `-openBypass`.
+- v2's onboarding "Earn your way in" step isn't brought back. The Shield's button and the walk screen explain it where it matters.
