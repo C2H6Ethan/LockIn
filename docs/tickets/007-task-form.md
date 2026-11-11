@@ -1,6 +1,6 @@
 # 007: Task form
 
-Status: todo
+Status: done
 Depends on: 006
 
 ## Goal
@@ -29,3 +29,7 @@ Task, Required Task, Optional Task, Start Time, Due
 ## Tests first
 - One `TaskDraft.validate()` test per rule.
 - Converting a draft to a Task and back is lossless for edits.
+
+## Notes
+- Edit is reached by long-pressing a Task on Today (context menu). Settings' All Tasks list (011) will also open it.
+- Debug builds accept `-openNewTask` to open the form on launch.
