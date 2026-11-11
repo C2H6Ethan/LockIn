@@ -11,6 +11,8 @@ public struct Settings: Hashable, Codable, Sendable {
     public var firstDay: DayKey?
     /// A Streak imported from v2 (014).
     public var streakSeed: StreakSeed?
+    /// The newest Missed Day the user has seen in the Missed-Day Recap.
+    public var recapAcknowledgedThrough: DayKey?
 
     public init(reminderTime: TimeOfDay? = Settings.defaultReminderTime, hasCompletedOnboarding: Bool = false, firstDay: DayKey? = nil, streakSeed: StreakSeed? = nil) {
         self.reminderTime = reminderTime
@@ -26,5 +28,6 @@ public struct Settings: Hashable, Codable, Sendable {
         hasCompletedOnboarding = try c.decodeIfPresent(Bool.self, forKey: .hasCompletedOnboarding) ?? false
         firstDay = try c.decodeIfPresent(DayKey.self, forKey: .firstDay)
         streakSeed = try c.decodeIfPresent(StreakSeed.self, forKey: .streakSeed)
+        recapAcknowledgedThrough = try c.decodeIfPresent(DayKey.self, forKey: .recapAcknowledgedThrough)
     }
 }

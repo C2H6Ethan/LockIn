@@ -1,6 +1,6 @@
 # 009: Missed-Day Recap
 
-Status: todo
+Status: done
 Depends on: 008
 
 ## Goal
@@ -71,3 +71,8 @@ func acknowledgeMissedDayRecap(through: DayKey)
 - `previousStreak` and `streakBrokenOn` are correct across a Kept Day between Missed Days.
 - Acknowledging through Day X still surfaces a Day X+1 that ends later.
 - 61 Missed Days sets `isTruncated`.
+
+## Notes
+- On-screen copy uses lowercase "streak" ("Your 12-day streak ended.") and full weekday names ("since Sunday, Nov 8"), to match the Today screen.
+- When the previous Streak is 0 and one Day was missed that wasn't yesterday, the headline names it: "You missed Sunday, Nov 8."
+- Debug builds: `-seed -seedMissed` shows a 12-day Streak broken by three Missed Days.

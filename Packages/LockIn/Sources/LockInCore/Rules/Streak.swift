@@ -20,9 +20,22 @@ public enum Streak {
         seed: StreakSeed?,
         calendar: Calendar
     ) -> Int {
+        guard firstDay != nil else { return 0 }
+        let yesterday = today.day.adding(days: -1, in: calendar)
+        return (today.isKept ? 1 : 0) + through(yesterday, records: records, firstDay: firstDay, seed: seed, calendar: calendar)
+    }
+
+    /// Consecutive Kept Days ending on `lastDay` (inclusive).
+    public static func through(
+        _ lastDay: DayKey,
+        records: [DayKey: DayRecord],
+        firstDay: DayKey?,
+        seed: StreakSeed?,
+        calendar: Calendar
+    ) -> Int {
         guard let firstDay else { return 0 }
-        var count = today.isKept ? 1 : 0
-        var day = today.day.adding(days: -1, in: calendar)
+        var count = 0
+        var day = lastDay
         while day >= firstDay {
             guard let record = records[day], record.countsAsKept else { return count }
             count += 1

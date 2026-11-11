@@ -8,6 +8,8 @@ struct RootView: View {
     @State private var showsBlocklist = false
     @State private var formTask: FormTarget?
     @State private var todayReload = 0
+    @State private var recap: RecapModel?
+    @Environment(\.scenePhase) private var scenePhase
 
     /// What the Task form is open for.
     private enum FormTarget: Identifiable {
@@ -55,6 +57,16 @@ struct RootView: View {
         #if DEBUG
         .onAppear { if DebugLaunch.opensNewTask { formTask = .new } }
         #endif
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            // Enforcement.refresh (run by LockInApp on foreground) finalizes ended Days first.
+            if phase == .active, recap == nil { recap = RecapModel.pending(store: environment.store) }
+        }
+        .fullScreenCover(item: $recap) { model in
+            RecapView(model: model) {
+                recap = nil
+                todayReload += 1
+            }
+        }
         .sheet(item: $formTask, onDismiss: { todayReload += 1 }) { target in
             switch target {
             case .new:
