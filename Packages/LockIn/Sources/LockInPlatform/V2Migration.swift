@@ -52,7 +52,6 @@ public enum V2Migration {
         store.write(result.completions, to: .completions)
         store.write(result.settings, to: .settings)
         store.write(Blocklist(selection: selection, customDomains: result.customDomains), to: .blocklist)
-        store.write(result.leftovers, to: .v2Leftovers)
         store.log("v2 import: \(result.tasks.count) tasks, streak seed \(result.settings.streakSeed?.count ?? 0)", source: .app)
         return .imported
     }

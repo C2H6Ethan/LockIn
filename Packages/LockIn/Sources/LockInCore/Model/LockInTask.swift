@@ -19,6 +19,8 @@ public struct LockInTask: Identifiable, Hashable, Codable, Sendable {
         case standard
         /// Completes itself once the Day's steps reach `target` (Step-Goal Task).
         case stepGoal(target: Int)
+        /// Can only be completed after visiting `place` that Day (Location Task).
+        case location(Place)
     }
 
     public init(id: ID = UUID(), title: String, schedule: Schedule, requirement: Requirement, startTime: TimeOfDay? = nil, createdOn: DayKey, kind: Kind = .standard) {
@@ -54,8 +56,14 @@ public struct LockInTask: Identifiable, Hashable, Codable, Sendable {
         return nil
     }
 
+    public var place: Place? {
+        if case .location(let place) = kind { return place }
+        return nil
+    }
+
     /// Step-Goal Tasks complete themselves; ticking them off by hand would defeat the point.
-    public var canCompleteManually: Bool { kind == .standard }
+    /// Location Tasks are tapped, but gated by `LocationRule`.
+    public var canCompleteManually: Bool { stepTarget == nil }
 
     public func isDue(on day: DayKey, calendar: Calendar) -> Bool {
         guard day >= createdOn else { return false }

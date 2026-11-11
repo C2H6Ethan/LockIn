@@ -61,10 +61,10 @@ struct V2ImportTests {
         #expect(result.tasks.allSatisfy { $0.createdOn == today })
     }
 
-    @Test func stepTargetsBecomeStepGoalsAndLocationsAreKeptForLater() throws {
+    @Test func stepTargetsAndLocationsBecomeKinds() throws {
         let result = try V2Import.map(snapshot(), today: today, calendar: cal)
         #expect(result.tasks.first { $0.id == stepsID }?.kind == .stepGoal(target: 8000))
-        #expect(result.leftovers.locations[gymID] == V2Leftovers.Place(name: "Gym", latitude: 47.37, longitude: 8.54))
+        #expect(result.tasks.first { $0.id == gymID }?.kind == .location(Place(name: "Gym", latitude: 47.37, longitude: 8.54)))
     }
 
     @Test func importsOnlyTodaysCompletions() throws {

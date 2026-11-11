@@ -51,7 +51,7 @@ struct RootView: View {
     private var main: some View {
         NavigationStack(path: $path) {
             TodayView(
-                model: TodayModel(store: environment.store, onChange: environment.stateDidChange),
+                model: TodayModel(store: environment.store, locate: { await CurrentLocation.fix() }, onChange: environment.stateDidChange),
                 onAddTask: { formTask = .new },
                 onEditTask: { formTask = .edit($0) }
             )

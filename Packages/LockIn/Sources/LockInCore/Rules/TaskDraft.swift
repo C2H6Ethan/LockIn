@@ -5,7 +5,7 @@ public struct TaskDraft: Equatable, Sendable {
     public enum Repeats: Equatable, Sendable { case weekly, once }
 
     public enum ValidationError: Equatable, Sendable {
-        case emptyTitle, noWeekdays, dayInPast, tooManyStartTimes, invalidStepTarget
+        case emptyTitle, noWeekdays, dayInPast, tooManyStartTimes, invalidStepTarget, stepGoalAndPlace, tooManyPlaces
 
         public var message: String {
             switch self {
@@ -13,6 +13,8 @@ public struct TaskDraft: Equatable, Sendable {
             case .noWeekdays: return "Pick at least one day."
             case .dayInPast: return "Pick today or a later day."
             case .tooManyStartTimes: return "You can use up to \(TaskDraft.maxDistinctStartTimes) different start times."
+            case .stepGoalAndPlace: return "A task can have a step goal or a place, not both."
+            case .tooManyPlaces: return "You can use up to \(LocationRule.maxPlaces) places."
             case .invalidStepTarget: return "Pick a goal between \(TaskDraft.stepTargetRange.lowerBound) and \(TaskDraft.stepTargetRange.upperBound.formatted()) steps."
             }
         }
@@ -31,6 +33,8 @@ public struct TaskDraft: Equatable, Sendable {
     public var startTime: TimeOfDay?
     /// Non-nil makes this a Step-Goal Task.
     public var stepTarget: Int?
+    /// Non-nil makes this a Location Task.
+    public var place: Place?
 
     public init() {}
 
@@ -39,6 +43,7 @@ public struct TaskDraft: Equatable, Sendable {
         requirement = task.requirement
         startTime = task.startTime
         stepTarget = task.stepTarget
+        place = task.place
         switch task.schedule {
         case .weekly(let days):
             repeats = .weekly
@@ -58,6 +63,8 @@ public struct TaskDraft: Equatable, Sendable {
         default: break
         }
         if let stepTarget, !Self.stepTargetRange.contains(stepTarget) { errors.append(.invalidStepTarget) }
+        if stepTarget != nil, place != nil { errors.append(.stepGoalAndPlace) }
+        if place != nil, otherTasks.filter({ $0.place != nil }).count >= LocationRule.maxPlaces { errors.append(.tooManyPlaces) }
         if requirement == .required, let startTime {
             let existing = Set(otherTasks.filter(\.isRequired).compactMap(\.startTime))
             if !existing.contains(startTime), existing.count >= Self.maxDistinctStartTimes {
@@ -72,7 +79,7 @@ public struct TaskDraft: Equatable, Sendable {
         guard validate(otherTasks: otherTasks, today: today).isEmpty else { return nil }
         let schedule: Schedule = repeats == .weekly ? .weekly(weekdays) : .once(onceDay ?? today)
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let kind: LockInTask.Kind = stepTarget.map { .stepGoal(target: $0) } ?? .standard
+        let kind: LockInTask.Kind = stepTarget.map { .stepGoal(target: $0) } ?? place.map { .location($0) } ?? .standard
         if var task = existing {
             task.title = cleanTitle
             task.schedule = schedule

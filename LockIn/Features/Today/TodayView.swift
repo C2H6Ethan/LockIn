@@ -74,6 +74,9 @@ struct TodayView: View {
             isCompleted: entry.isCompleted,
             isRequired: entry.task.isRequired,
             completesItself: !entry.task.canCompleteManually,
+            isLocation: entry.task.place != nil,
+            isChecking: model.checkingLocation.contains(entry.task.id),
+            message: model.message(for: entry.task),
             onToggle: { model.toggle(entry.task.id) }
         )
         .contextMenu {
@@ -90,6 +93,12 @@ struct TaskRow: View {
     let isRequired: Bool
     /// Step-Goal Tasks: shown like any Task, but tapping does nothing.
     var completesItself = false
+    /// Location Tasks get a map-pin marker.
+    var isLocation = false
+    /// A location fix is being taken for this row.
+    var isChecking = false
+    /// Why the last tap didn't complete it.
+    var message: String?
     let onToggle: () -> Void
 
     var body: some View {
@@ -107,6 +116,11 @@ struct TaskRow: View {
                             .font(.subheadline)
                             .foregroundStyle(DesignSystem.Colors.secondaryText)
                     }
+                    if let message {
+                        Text(message)
+                            .font(.subheadline)
+                            .foregroundStyle(DesignSystem.Colors.destructive)
+                    }
                 }
                 Spacer(minLength: 0)
             }
@@ -122,7 +136,13 @@ struct TaskRow: View {
 
     @ViewBuilder private var marker: some View {
         let color = isRequired ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText
-        if isCompleted {
+        if isChecking {
+            ProgressView().controlSize(.mini).tint(color)
+        } else if isLocation {
+            Image(systemName: isCompleted ? "mappin.circle.fill" : "mappin.circle")
+                .font(.system(size: 17))
+                .foregroundStyle(color)
+        } else if isCompleted {
             Circle().fill(color).frame(width: 14, height: 14)
         } else {
             Circle().strokeBorder(color, lineWidth: 1.5).frame(width: 14, height: 14)

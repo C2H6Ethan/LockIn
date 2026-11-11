@@ -8,6 +8,7 @@ struct AppEnvironment {
     let store: LockInStore
     let enforcement: Enforcement
     let steps: StepGoalObserver
+    let places: PlaceMonitor
 
     static func live() -> AppEnvironment {
         guard let enforcement = Enforcement.live(source: .app) else {
@@ -20,18 +21,26 @@ struct AppEnvironment {
         let steps = StepGoalObserver { total in
             Enforcement.live(source: .app)?.recordSteps(total)
         }
-        return AppEnvironment(store: enforcement.storeForReading, enforcement: enforcement, steps: steps)
+        let places = PlaceMonitor { id in
+            Enforcement.live(source: .app)?.recordVisit(id)
+        }
+        return AppEnvironment(store: enforcement.storeForReading, enforcement: enforcement, steps: steps, places: places)
     }
 
     /// Called from `didFinishLaunching`, including background launches by HealthKit.
     func startBackgroundObservers() {
-        if StepGoal.isInUse(store.read(.tasks)) { steps.start() }
+        let tasks = store.read(.tasks)
+        if StepGoal.isInUse(tasks) { steps.start() }
+        places.sync(tasks: tasks)
     }
 
     /// Re-applies everything that depends on Tasks, the Blocklist or settings. Call after every change.
     func stateDidChange() {
         enforcement.refresh(reason: "state changed")
-        guard StepGoal.isInUse(store.read(.tasks)) else { return }
+        let tasks = store.read(.tasks)
+        if tasks.contains(where: { $0.place != nil }) { places.requestAuthorization() }
+        places.sync(tasks: tasks)
+        guard StepGoal.isInUse(tasks) else { return }
         // The first Step-Goal Task asks for HealthKit access; then today's steps may already complete it.
         let steps = steps
         Task {

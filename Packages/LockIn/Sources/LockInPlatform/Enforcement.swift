@@ -79,6 +79,16 @@ public struct Enforcement {
         return true
     }
 
+    /// Records that a Location Task's place was entered today (from background region monitoring).
+    /// Doesn't complete the Task: the user still taps it.
+    public func recordVisit(_ id: LockInTask.ID, now: Date = Date()) {
+        var visits = store.read(.visits)
+        visits.record(id, on: DayKey(now, calendar: calendar), calendar: calendar)
+        store.write(visits, to: .visits)
+        let name = store.read(.tasks).first { $0.id == id }?.place?.name ?? id.uuidString
+        store.log("Visited \(name)", source: source, at: now)
+    }
+
     /// Starts a Bypass window now (the walk is verified by the caller) and lifts the Shield.
     @discardableResult
     public func startBypass(now: Date = Date()) -> Bypass {

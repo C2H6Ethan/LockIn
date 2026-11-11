@@ -4,6 +4,7 @@ import SwiftUI
 /// Create or edit a Task. One form for both, so they can never drift apart.
 struct TaskFormView: View {
     @State var model: TaskFormModel
+    @State var showsPlacePicker = false
     @State private var confirmsDelete = false
     @FocusState private var titleFocused: Bool
     @Environment(\.dismiss) private var dismiss
@@ -22,6 +23,7 @@ struct TaskFormView: View {
                     repeatSection
                     startTimeSection
                     stepGoalSection
+                    placeSection
 
                     if !model.draft.title.isEmpty {
                         ForEach(model.errors.filter { $0 != .emptyTitle }, id: \.self) { error in
@@ -143,6 +145,32 @@ extension TaskFormView {
                     .font(.footnote)
                     .foregroundStyle(DesignSystem.Colors.secondaryText)
             }
+        }
+    }
+}
+
+extension TaskFormView {
+    var placeSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            Toggle(isOn: Binding(
+                get: { model.draft.place != nil },
+                set: { on in
+                    if on { showsPlacePicker = true } else { model.draft.place = nil }
+                }
+            )) {
+                Text("Place").foregroundStyle(DesignSystem.Colors.primaryText)
+            }
+            if let place = model.draft.place {
+                Button { showsPlacePicker = true } label: {
+                    Text(place.name).foregroundStyle(DesignSystem.Colors.accent)
+                }
+                Text("Can only be ticked off after you've been there today.")
+                    .font(.footnote)
+                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+            }
+        }
+        .sheet(isPresented: $showsPlacePicker) {
+            PlacePickerView(initial: model.draft.place) { model.draft.place = $0 }
         }
     }
 }

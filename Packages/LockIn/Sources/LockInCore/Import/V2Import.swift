@@ -27,29 +27,11 @@ public struct V2Snapshot: Sendable {
     public var isPresent: Bool { tasks != nil || hasCompletedOnboarding }
 }
 
-/// v2 data that a later ticket (017 Location) turns into a Task kind.
-public struct V2Leftovers: Hashable, Codable, Sendable {
-    public struct Place: Hashable, Codable, Sendable {
-        public let name: String
-        public let latitude: Double
-        public let longitude: Double
-    }
-
-    public var locations: [LockInTask.ID: Place] = [:]
-
-    public init() {}
-}
-
-extension Document where Value == V2Leftovers {
-    public static let v2Leftovers = Document("v2Leftovers") { V2Leftovers() }
-}
-
 public struct V2ImportResult: Sendable {
     public let tasks: [LockInTask]
     public let completions: CompletionLog
     public let settings: Settings
     public let customDomains: [String]
-    public let leftovers: V2Leftovers
 }
 
 /// Maps v2 data to v3. Pure; the platform reads the snapshot and writes the result.
@@ -61,16 +43,14 @@ public enum V2Import {
         let v2Streak = try? snapshot.streakData.map { try decoder.decode(V2StreakData.self, from: $0) }
 
         var tasks: [LockInTask] = []
-        var leftovers = V2Leftovers()
         for old in v2Tasks {
             guard let schedule = schedule(for: old, log: v2Log, today: today) else { continue }
             let start = old.blockingStartTime.map { TimeOfDay.nearestAllowed(hour: $0.hour ?? 0, minute: $0.minute ?? 0) }
-            let kind: LockInTask.Kind = old.stepTarget.map { .stepGoal(target: $0) } ?? .standard
+            // v2 allowed both; the step goal wins, since it needs no extra permission.
+            let place = old.location.map { Place(name: $0.name, latitude: $0.latitude, longitude: $0.longitude) }
+            let kind: LockInTask.Kind = old.stepTarget.map { .stepGoal(target: $0) } ?? place.map { .location($0) } ?? .standard
             tasks.append(LockInTask(id: old.id, title: old.title, schedule: schedule,
                                     requirement: old.blocksApps ? .required : .optional, startTime: start, createdOn: today, kind: kind))
-            if let place = old.location {
-                leftovers.locations[old.id] = .init(name: place.name, latitude: place.latitude, longitude: place.longitude)
-            }
         }
 
         let importedIDs = Set(tasks.map(\.id))
@@ -90,7 +70,7 @@ public enum V2Import {
         var domains: [String] = []
         for raw in snapshot.selectedWebDomains ?? [] { _ = CustomDomain.add(raw, to: &domains) }
 
-        return V2ImportResult(tasks: tasks, completions: completions, settings: settings, customDomains: domains, leftovers: leftovers)
+        return V2ImportResult(tasks: tasks, completions: completions, settings: settings, customDomains: domains)
     }
 
     private static func schedule(for task: V2Task, log: [String: Set<UUID>], today: DayKey) -> Schedule? {
