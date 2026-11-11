@@ -28,7 +28,7 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 | 018 | [Streak Freeze](018-streak-freeze.md) | done |
 | 019 | [Lock Mode](019-lock-mode.md) | done |
 | 020 | [Widget](020-widget.md) | done (device check pending) |
-| 021 | [Review prompt and launch screen](021-review-prompt-and-launch-screen.md) | todo |
+| 021 | [Review prompt and launch screen](021-review-prompt-and-launch-screen.md) | done |
 | 022 | [Cutover](022-cutover.md) | todo |
 
 v2 reference: the old implementation stays readable on `main` until 022. Read it for copy and behavior details, never copy its structure.

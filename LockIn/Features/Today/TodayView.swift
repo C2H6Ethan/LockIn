@@ -1,4 +1,5 @@
 import LockInCore
+import StoreKit
 import SwiftUI
 
 /// The main screen: what's due today. Completing the last Required Task drops the Shield.
@@ -8,6 +9,7 @@ struct TodayView: View {
     var onEditTask: (LockInTask) -> Void = { _ in }
 
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.requestReview) private var requestReview
 
     var body: some View {
         ScrollView {
@@ -36,6 +38,9 @@ struct TodayView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             model.reload()
+        }
+        .onChange(of: model.streak, initial: true) {
+            if model.consumeReviewRequest() { requestReview() }
         }
     }
 

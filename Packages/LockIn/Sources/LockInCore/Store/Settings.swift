@@ -15,6 +15,8 @@ public struct Settings: Hashable, Codable, Sendable {
     public var recapAcknowledgedThrough: DayKey?
     /// The Day a Streak Freeze was last spent, which makes it unavailable for the rest of that ISO week.
     public var streakFreezeUsedOn: DayKey?
+    /// The App Store review prompt was shown (021). Kept in the App Group, unlike v2.
+    public var hasRequestedReview = false
 
     public init(reminderTime: TimeOfDay? = Settings.defaultReminderTime, hasCompletedOnboarding: Bool = false, firstDay: DayKey? = nil, streakSeed: StreakSeed? = nil) {
         self.reminderTime = reminderTime
@@ -24,7 +26,7 @@ public struct Settings: Hashable, Codable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case reminderTime, hasCompletedOnboarding, firstDay, streakSeed, recapAcknowledgedThrough, streakFreezeUsedOn
+        case reminderTime, hasCompletedOnboarding, firstDay, streakSeed, recapAcknowledgedThrough, streakFreezeUsedOn, hasRequestedReview
     }
 
     /// Missing fields fall back to defaults so older documents keep decoding.
@@ -36,6 +38,7 @@ public struct Settings: Hashable, Codable, Sendable {
         streakSeed = try c.decodeIfPresent(StreakSeed.self, forKey: .streakSeed)
         recapAcknowledgedThrough = try c.decodeIfPresent(DayKey.self, forKey: .recapAcknowledgedThrough)
         streakFreezeUsedOn = try c.decodeIfPresent(DayKey.self, forKey: .streakFreezeUsedOn)
+        hasRequestedReview = try c.decodeIfPresent(Bool.self, forKey: .hasRequestedReview) ?? false
     }
 
     /// `reminderTime` is always written, including as `null`, so "off" survives a round trip
@@ -48,5 +51,6 @@ public struct Settings: Hashable, Codable, Sendable {
         try c.encodeIfPresent(streakSeed, forKey: .streakSeed)
         try c.encodeIfPresent(recapAcknowledgedThrough, forKey: .recapAcknowledgedThrough)
         try c.encodeIfPresent(streakFreezeUsedOn, forKey: .streakFreezeUsedOn)
+        try c.encode(hasRequestedReview, forKey: .hasRequestedReview)
     }
 }

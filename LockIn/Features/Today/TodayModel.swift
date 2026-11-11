@@ -87,6 +87,15 @@ final class TodayModel {
         return Streak.current(records: store.read(.dayRecords), today: today, firstDay: settings.firstDay, seed: settings.streakSeed, calendar: calendar)
     }
 
+    /// True once, the first time the Streak reaches a week; records that it asked.
+    func consumeReviewRequest() -> Bool {
+        var settings = store.read(.settings)
+        guard ReviewPrompt.shouldRequest(streak: streak, alreadyRequested: settings.hasRequestedReview) else { return false }
+        settings.hasRequestedReview = true
+        store.write(settings, to: .settings)
+        return true
+    }
+
     var streakLabel: String? {
         streak > 0 ? "\(streak)-day streak" : nil
     }

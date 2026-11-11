@@ -1,6 +1,6 @@
 # 021: Review prompt and launch screen
 
-Status: todo
+Status: done
 Depends on: 008
 
 ## Scope
@@ -9,3 +9,8 @@ Depends on: 008
 
 ## Tests first
 - `shouldRequestReview(streak:, alreadyRequested:)`.
+
+## Notes
+- `ReviewPrompt.shouldRequest` (core) and `Settings.hasRequestedReview` (App Group).
+- Today asks via `requestReview` on `.onChange(of: streak, initial: true)`, so it fires when a completion or the midnight rollover first makes the Streak 7 or more. `TodayModel.consumeReviewRequest()` sets the flag, so it fires only once.
+- The launch screen was already right: `UILaunchScreen` uses the `LaunchBackground` color (#0A0A0A) and `LaunchLogo`, kept from v2. No change needed.
