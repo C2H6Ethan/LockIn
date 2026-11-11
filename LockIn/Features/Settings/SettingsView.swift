@@ -7,28 +7,26 @@ import SwiftUI
 struct SettingsView: View {
     @State var model: SettingsModel
     let environment: AppEnvironment
-    var onAddTask: () -> Void
-    var onEditTask: (LockInTask) -> Void
-    /// Changes whenever Tasks may have been edited elsewhere, e.g. in the Task form sheet.
-    var dataVersion: Int
 
     @State private var showsBlocklist = false
     @State private var showsEventLog = false
-    @State private var choosesLockDuration = false
+    @State private var showsLockSheet = false
+    @State private var blocklist = Blocklist()
     @ObservedObject private var authorization = AuthorizationCenter.shared
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xl) {
-                tasksSection
+                lockSection
                 blockingSection
                 reminderSection
-                lockSection
-                Text(model.appVersion)
-                    .font(.footnote)
-                    .foregroundStyle(DesignSystem.Colors.secondaryText)
-                    .onLongPressGesture { showsEventLog = true }
-                    .padding(.top, DesignSystem.Spacing.lg)
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                    SectionLabel("About")
+                    Text(model.appVersion)
+                        .font(.footnote)
+                        .foregroundStyle(DesignSystem.Colors.secondaryText)
+                        .onLongPressGesture { showsEventLog = true }
+                }
             }
             .padding(DesignSystem.Spacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -37,63 +35,37 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showsEventLog) { EventLogView(store: environment.store) }
-        .sheet(isPresented: $showsBlocklist) {
+        .sheet(isPresented: $showsBlocklist, onDismiss: reload) {
             BlocklistEditorView(model: BlocklistEditorModel(store: environment.store, onSave: environment.stateDidChange))
         }
-        .onAppear { model.reload() }
-        .onChange(of: dataVersion) { model.reload() }
+        .sheet(isPresented: $showsLockSheet, onDismiss: reload) {
+            LockModeSheet(model: model)
+                .presentationDragIndicator(.visible)
+        }
+        .onAppear(perform: reload)
+        #if DEBUG
+        .onAppear { if DebugLaunch.opensLockSheet { showsLockSheet = true } }
+        #endif
     }
 
-    private var tasksSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                SectionLabel("Tasks")
-                Spacer()
-                Button("Add", action: onAddTask)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(DesignSystem.Colors.accent)
-            }
-            .padding(.bottom, DesignSystem.Spacing.sm)
-
-            if model.tasks.isEmpty {
-                Text("No tasks yet.")
-                    .foregroundStyle(DesignSystem.Colors.secondaryText)
-                    .padding(.vertical, DesignSystem.Spacing.sm)
-            }
-            ForEach(model.requiredTasks) { taskRow($0) }
-            if !model.optionalTasks.isEmpty {
-                SectionLabel("Optional")
-                    .padding(.top, DesignSystem.Spacing.lg)
-                    .padding(.bottom, DesignSystem.Spacing.sm)
-                ForEach(model.optionalTasks) { taskRow($0) }
-            }
-        }
+    private func reload() {
+        model.reload()
+        blocklist = environment.store.read(.blocklist)
     }
 
-    private func taskRow(_ task: LockInTask) -> some View {
-        Button { onEditTask(task) } label: {
-            HStack(spacing: DesignSystem.Spacing.md) {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                    Text(task.title).foregroundStyle(DesignSystem.Colors.primaryText)
-                    Text(model.describe(task))
-                        .font(.subheadline)
-                        .foregroundStyle(DesignSystem.Colors.secondaryText)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.footnote)
-                    .foregroundStyle(DesignSystem.Colors.secondaryText)
-            }
-            .padding(.vertical, DesignSystem.Spacing.sm)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+    /// "12 apps, 2 categories, 3 websites"
+    private var blocklistText: String {
+        let websites = blocklist.webDomainCount + blocklist.customDomains.count
+        let parts = [(blocklist.appCount, "app", "apps"), (blocklist.categoryCount, "category", "categories"), (websites, "website", "websites")]
+            .filter { $0.0 > 0 }
+            .map { "\($0.0) \($0.0 == 1 ? $0.1 : $0.2)" }
+        return parts.isEmpty ? "Empty. Choose what to block." : parts.joined(separator: ", ")
     }
 
     private var blockingSection: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             SectionLabel("Blocking")
-            row(title: "Blocklist", detail: "Apps, categories and websites") { showsBlocklist = true }
+            row(title: "Blocklist", detail: blocklistText) { showsBlocklist = true }
             row(title: "Screen Time access", detail: authorizationText) {
                 Task { try? await AuthorizationCenter.shared.requestAuthorization(for: .individual) }
             }
@@ -124,7 +96,7 @@ struct SettingsView: View {
                 .pickerStyle(.menu)
                 .tint(DesignSystem.Colors.accent)
             }
-            Text("Only sent if required tasks are still open.")
+            Text("Only sent while required tasks are still open.")
                 .font(.footnote)
                 .foregroundStyle(DesignSystem.Colors.secondaryText)
         }
@@ -134,28 +106,21 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             SectionLabel("Lock Mode")
             if let until = model.lockedUntil {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                    Text("Locked until \(until.formatted(date: .abbreviated, time: .shortened))")
-                        .foregroundStyle(DesignSystem.Colors.primaryText)
-                    Text("You can add tasks and add to the Blocklist, but not remove or weaken anything.")
-                        .font(.subheadline)
-                        .foregroundStyle(DesignSystem.Colors.secondaryText)
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                        Text("Locked until \(until.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))")
+                            .foregroundStyle(DesignSystem.Colors.primaryText)
+                        Text("Only stricter changes until then.")
+                            .font(.subheadline)
+                            .foregroundStyle(DesignSystem.Colors.secondaryText)
+                    }
+                    Spacer(minLength: DesignSystem.Spacing.md)
+                    Button("Extend") { showsLockSheet = true }
+                        .foregroundStyle(DesignSystem.Colors.accent)
                 }
-                Button("Extend") { choosesLockDuration = true }
-                    .foregroundStyle(DesignSystem.Colors.accent)
             } else {
-                row(title: "Lock Mode", detail: "Commit for a while: only stricter changes allowed") { choosesLockDuration = true }
+                row(title: "Lock Mode", detail: "Off. While it's on, you can only make Lock In stricter.") { showsLockSheet = true }
             }
-            Text("Turning off Screen Time access in iOS Settings can't be prevented.")
-                .font(.footnote)
-                .foregroundStyle(DesignSystem.Colors.secondaryText)
-        }
-        .confirmationDialog("Lock for how long?", isPresented: $choosesLockDuration, titleVisibility: .visible) {
-            ForEach(LockMode.durations, id: \.self) { days in
-                Button(days == 1 ? "1 day" : "\(days) days") { model.lock(days: days) }
-            }
-        } message: {
-            Text("Until it ends you can't delete tasks, make them optional, or remove anything from the Blocklist. It can't be ended early.")
         }
     }
 

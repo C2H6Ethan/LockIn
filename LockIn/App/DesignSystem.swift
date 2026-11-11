@@ -21,6 +21,24 @@ enum DesignSystem {
         static let rowMarker: CGFloat = 22
     }
 
+    /// Base sizes at the default text size. Views scale them with `@ScaledMetric` so they grow with Dynamic Type.
+    enum Size {
+        /// Task row marker (circle or progress ring).
+        static let marker: CGFloat = 14
+        /// Minimum tap target (HIG).
+        static let hitArea: CGFloat = 44
+        /// The walk screen's live step counter.
+        static let stepCounter: CGFloat = 88
+    }
+
+    enum Typography {
+        /// A number bigger than any text style (the walk screen's step counter). Pass a `@ScaledMetric` size
+        /// so it still follows Dynamic Type. The only fixed-size font in the app.
+        static func display(size: CGFloat) -> Font {
+            .system(size: size, weight: .semibold).monospacedDigit()
+        }
+    }
+
     enum CornerRadius {
         static let sm: CGFloat = 6
         static let md: CGFloat = 12

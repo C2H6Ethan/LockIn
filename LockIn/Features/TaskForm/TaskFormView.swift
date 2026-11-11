@@ -2,6 +2,7 @@ import LockInCore
 import SwiftUI
 
 /// Create or edit a Task. One form for both, so they can never drift apart.
+/// Order: name, Required, Repeat, Completes by, then Start Time for Required Tasks only.
 struct TaskFormView: View {
     @State var model: TaskFormModel
     @State var showsPlacePicker = false
@@ -13,45 +14,47 @@ struct TaskFormView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.xl) {
-                    TextField("Task name", text: $model.draft.title, axis: .vertical)
-                        .font(.system(.title2, weight: .semibold))
-                        .foregroundStyle(DesignSystem.Colors.primaryText)
-                        .focused($titleFocused)
-                        .submitLabel(.done)
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                        TextField("Task name", text: $model.draft.title, axis: .vertical)
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(DesignSystem.Colors.primaryText)
+                            .focused($titleFocused)
+                            .submitLabel(.done)
+                            .onSubmit { titleFocused = false }
+                        if let hint = model.saveHint {
+                            Text(hint)
+                                .font(.footnote)
+                                .foregroundStyle(model.lockViolations.isEmpty ? DesignSystem.Colors.secondaryText : DesignSystem.Colors.destructive)
+                                .accessibilityLabel("Can't save yet. \(hint)")
+                        }
+                    }
 
                     requiredSection
                     repeatSection
-                    startTimeSection
-                    stepGoalSection
-                    placeSection
-
-                    if !model.draft.title.isEmpty {
-                        ForEach(model.errors.filter { $0 != .emptyTitle }, id: \.self) { error in
-                            Text(error.message)
-                                .font(.footnote)
-                                .foregroundStyle(DesignSystem.Colors.secondaryText)
-                        }
+                    completesBySection
+                    if model.draft.requirement == .required {
+                        startTimeSection
                     }
 
                     if let until = model.lockedUntil {
-                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
-                            Text("Locked until \(until.formatted(date: .abbreviated, time: .shortened)). You can only make this task stricter.")
-                                .foregroundStyle(DesignSystem.Colors.secondaryText)
-                            ForEach(model.lockViolations, id: \.self) { violation in
-                                Text(violation.message).foregroundStyle(DesignSystem.Colors.destructive)
-                            }
-                        }
-                        .font(.footnote)
+                        Label("Locked until \(until.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())). You can only make this task stricter.",
+                              systemImage: "lock.fill")
+                            .labelStyle(InlineIconLabelStyle())
+                            .font(.footnote)
+                            .foregroundStyle(DesignSystem.Colors.secondaryText)
                     }
 
                     if model.canDelete {
-                        Button("Delete Task", role: .destructive) { confirmsDelete = true }
+                        Button("Delete task", role: .destructive) { confirmsDelete = true }
                             .foregroundStyle(DesignSystem.Colors.destructive)
                             .padding(.top, DesignSystem.Spacing.lg)
                     }
                 }
                 .padding(DesignSystem.Spacing.lg)
+                .animation(.easeOut(duration: 0.2), value: model.draft.requirement)
+                .animation(.easeOut(duration: 0.2), value: model.draft.completesBy)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(DesignSystem.Colors.background)
             .navigationTitle(model.isEditing ? "Edit Task" : "New Task")
             .navigationBarTitleDisplayMode(.inline)
@@ -62,6 +65,7 @@ struct TaskFormView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { if model.save() { dismiss() } }
+                        .fontWeight(.semibold)
                         .disabled(!model.canSave)
                 }
             }
@@ -71,6 +75,7 @@ struct TaskFormView: View {
                     dismiss()
                 }
             }
+            // Only a new Task opens with the keyboard; editing opens on the whole form.
             .onAppear { if !model.isEditing { titleFocused = true } }
         }
         .tint(DesignSystem.Colors.accent)
@@ -88,8 +93,8 @@ struct TaskFormView: View {
                 Text("Required").foregroundStyle(DesignSystem.Colors.primaryText)
             }
             Text(model.draft.requirement == .required
-                 ? "Keeps your Blocklist shielded until it's done."
-                 : "Tracked, but never shields anything.")
+                 ? "Your Blocklist stays blocked until it's done."
+                 : "Tracked, but never blocks anything.")
                 .font(.footnote)
                 .foregroundStyle(DesignSystem.Colors.secondaryText)
         }
@@ -114,6 +119,45 @@ struct TaskFormView: View {
         }
     }
 
+    private var completesBySection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            SectionLabel("Completes by")
+            Picker("Completes by", selection: Binding(
+                get: { model.draft.completesBy },
+                set: { choice in
+                    model.draft.completesBy = choice
+                    if choice == .place, model.draft.place == nil { showsPlacePicker = true }
+                }
+            )) {
+                Text("Tapping").tag(TaskDraft.CompletesBy.tapping)
+                Text("Steps").tag(TaskDraft.CompletesBy.steps)
+                Text("Place").tag(TaskDraft.CompletesBy.place)
+            }
+            .pickerStyle(.segmented)
+
+            switch model.draft.completesBy {
+            case .tapping:
+                footnote("Tick it off on Today when it's done.")
+            case .steps:
+                Picker("Goal", selection: $model.draft.stepTarget) {
+                    ForEach(model.stepTargetChoices, id: \.self) { Text("\($0.formatted()) steps").tag($0) }
+                }
+                .pickerStyle(.menu)
+                .tint(DesignSystem.Colors.accent)
+                footnote("Done by itself once Apple Health counts this many steps today. If it doesn't count: open Health, tap your profile, then Apps → Lock In, and turn on Steps.")
+            case .place:
+                Button { showsPlacePicker = true } label: {
+                    Text(model.draft.place?.name ?? "Choose a place")
+                        .foregroundStyle(DesignSystem.Colors.accent)
+                }
+                footnote("You can tick it off once you've been there today.")
+            }
+        }
+        .sheet(isPresented: $showsPlacePicker) {
+            PlacePickerView(initial: model.draft.place) { model.draft.place = $0 }
+        }
+    }
+
     private var startTimeSection: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             Toggle(isOn: Binding(
@@ -129,60 +173,15 @@ struct TaskFormView: View {
                 .pickerStyle(.wheel)
                 .frame(height: 120)
             }
-            Text(verbatim: model.draft.startTime.map { "Shields from \($0.description) until done." } ?? "Shields from midnight until done.")
-                .font(.footnote)
-                .foregroundStyle(DesignSystem.Colors.secondaryText)
-                .opacity(model.draft.requirement == .required ? 1 : 0)
+            footnote(model.draft.startTime.map { "Blocks from \($0.description) until done." } ?? "Blocks from midnight until done.")
         }
     }
-}
 
-extension TaskFormView {
-    var stepGoalSection: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Toggle(isOn: Binding(
-                get: { model.draft.stepTarget != nil },
-                set: { model.draft.stepTarget = $0 ? TaskFormModel.defaultStepTarget : nil }
-            )) {
-                Text("Step goal").foregroundStyle(DesignSystem.Colors.primaryText)
-            }
-            if let target = model.draft.stepTarget {
-                Picker("Steps", selection: Binding(get: { target }, set: { model.draft.stepTarget = $0 })) {
-                    ForEach(model.stepTargetChoices, id: \.self) { Text("\($0.formatted()) steps").tag($0) }
-                }
-                .pickerStyle(.menu)
-                .tint(DesignSystem.Colors.accent)
-                Text("Completes itself once Apple Health counts this many steps today. It can't be ticked off by hand. Not counting? In the Health app, tap your profile → Apps → Lock In and allow Steps.")
-                    .font(.footnote)
-                    .foregroundStyle(DesignSystem.Colors.secondaryText)
-            }
-        }
-    }
-}
-
-extension TaskFormView {
-    var placeSection: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            Toggle(isOn: Binding(
-                get: { model.draft.place != nil },
-                set: { on in
-                    if on { showsPlacePicker = true } else { model.draft.place = nil }
-                }
-            )) {
-                Text("Place").foregroundStyle(DesignSystem.Colors.primaryText)
-            }
-            if let place = model.draft.place {
-                Button { showsPlacePicker = true } label: {
-                    Text(place.name).foregroundStyle(DesignSystem.Colors.accent)
-                }
-                Text("Can only be ticked off after you've been there today.")
-                    .font(.footnote)
-                    .foregroundStyle(DesignSystem.Colors.secondaryText)
-            }
-        }
-        .sheet(isPresented: $showsPlacePicker) {
-            PlacePickerView(initial: model.draft.place) { model.draft.place = $0 }
-        }
+    private func footnote(_ text: String) -> some View {
+        Text(verbatim: text)
+            .font(.footnote)
+            .foregroundStyle(DesignSystem.Colors.secondaryText)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -194,7 +193,36 @@ struct WeekdayPicker: View {
         (.thursday, "T", "Thursday"), (.friday, "F", "Friday"), (.saturday, "S", "Saturday"), (.sunday, "S", "Sunday"),
     ]
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(order, id: \.0) { day, _, name in
+                    let on = selection.contains(day)
+                    Button {
+                        if on { selection.remove(day) } else { selection.insert(day) }
+                    } label: {
+                        HStack {
+                            Text(name)
+                                .fontWeight(on ? .semibold : .regular)
+                                .foregroundStyle(on ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText)
+                            Spacer()
+                            if on { Image(systemName: "checkmark").foregroundStyle(DesignSystem.Colors.accent) }
+                        }
+                        .frame(minHeight: DesignSystem.Size.hitArea)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(on ? .isSelected : [])
+                }
+            }
+        } else {
+            letters
+        }
+    }
+
+    private var letters: some View {
         HStack(spacing: 0) {
             ForEach(order, id: \.0) { day, letter, name in
                 let on = selection.contains(day)
@@ -204,7 +232,7 @@ struct WeekdayPicker: View {
                     Text(letter)
                         .font(.body.weight(on ? .semibold : .regular))
                         .foregroundStyle(on ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText)
-                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .frame(maxWidth: .infinity, minHeight: DesignSystem.Size.hitArea)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)

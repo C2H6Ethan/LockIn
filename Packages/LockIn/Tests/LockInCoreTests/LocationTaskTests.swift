@@ -68,16 +68,9 @@ struct LocationTaskTests {
     @Test func draftCarriesThePlace() {
         var d = TaskDraft(task: gymTask, today: today)
         #expect(d.place == gym)
-        d.place = nil
+        #expect(d.completesBy == .place)
+        d.completesBy = .tapping
         #expect(d.makeTask(existing: gymTask, today: today)?.kind == .standard)
-    }
-
-    @Test func aTaskCanHaveAStepGoalOrAPlaceNotBoth() {
-        var d = TaskDraft()
-        d.title = "Walk to the gym"
-        d.stepTarget = 5000
-        d.place = gym
-        #expect(d.validate(otherTasks: [], today: today) == [.stepGoalAndPlace])
     }
 
     @Test func atMostTwentyPlaces() {
@@ -88,6 +81,7 @@ struct LocationTaskTests {
         }
         var d = TaskDraft()
         d.title = "One more"
+        d.completesBy = .place
         d.place = gym
         #expect(d.validate(otherTasks: others, today: today) == [.tooManyPlaces])
     }

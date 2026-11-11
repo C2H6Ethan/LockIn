@@ -8,12 +8,12 @@ final class TaskFormModel {
     static let startTimeChoices: [TimeOfDay] = stride(from: 0, through: TimeOfDay.latest.minutesSinceMidnight, by: TimeOfDay.step)
         .compactMap { TimeOfDay(minutesSinceMidnight: $0) }
 
-    static let defaultStepTarget = 8000
     private static let stepTargetPresets = Array(stride(from: 1000, through: 30000, by: 1000))
 
     /// Presets, plus the current value if it isn't one (e.g. imported from v2).
     var stepTargetChoices: [Int] {
-        guard let target = draft.stepTarget, !Self.stepTargetPresets.contains(target) else { return Self.stepTargetPresets }
+        let target = draft.stepTarget
+        guard !Self.stepTargetPresets.contains(target) else { return Self.stepTargetPresets }
         return (Self.stepTargetPresets + [target]).sorted()
     }
 
@@ -47,6 +47,11 @@ final class TaskFormModel {
     }
 
     var canSave: Bool { errors.isEmpty && lockViolations.isEmpty }
+
+    /// Why Save is off, shown under the name from the start: the first validation error, else the first Lock Mode violation.
+    var saveHint: String? {
+        errors.first?.message ?? lockViolations.first?.message
+    }
 
     // MARK: Lock Mode
 

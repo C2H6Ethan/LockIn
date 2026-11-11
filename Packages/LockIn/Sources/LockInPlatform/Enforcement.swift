@@ -75,6 +75,9 @@ public struct Enforcement {
     @discardableResult
     public func recordSteps(_ steps: Int, now: Date = Date()) -> Bool {
         let day = DayKey(now, calendar: calendar)
+        // Today shows progress from this; steps only rise during a Day, so keep the larger total.
+        let previous = StepGoal.progress(stored: store.read(.stepsToday), today: day) ?? 0
+        store.write(StepsToday(day: day, total: max(previous, steps)), to: .stepsToday)
         var log = store.read(.completions)
         let reached = StepGoal.completions(tasks: store.read(.tasks), stepsToday: steps, day: day, calendar: calendar)
             .filter { !log.isCompleted($0, on: day) }
@@ -121,7 +124,7 @@ public struct Enforcement {
         if ended != nil { store.write(log, to: .bypasses) }
         let shielded = refresh(reason: "intervalDidStart \(activityName)\(ended == nil ? " (stale)" : "")", now: now)
         if ended != nil, shielded {
-            poster.post(id: Self.bypassNotificationID, title: "Bypass over.", body: "The Shield is back up.", deepLink: Self.todayURL)
+            poster.post(id: Self.bypassNotificationID, title: "Bypass over.", body: "Blocking is back on.", deepLink: Self.todayURL)
         }
     }
 

@@ -41,7 +41,7 @@ struct OnboardingView: View {
             page("How blocking\nworks.",
                  model.screenTimeDenied
                     ? "Lock In needs Screen Time access to block anything. Nothing leaves your device. Allow it to continue."
-                    : "Lock In uses Apple's Screen Time to shield distracting apps until you finish what matters.\n\nNo accounts. No servers. Everything stays on your device.")
+                    : "Lock In uses Apple's Screen Time to block distracting apps until you finish what matters.\n\nNo accounts. No servers. Everything stays on your device.")
         case .blocklist:
             page("Block your\ndistractions.", blocklistSubtitle)
         case .firstTask:
@@ -65,7 +65,7 @@ struct OnboardingView: View {
         _ = dataVersion
         let tasks = environment.store.read(.tasks)
         return tasks.isEmpty
-            ? "Something you'll do every day. Required tasks keep your Blocklist shielded until they're done."
+            ? "Something you'll do every day. Until your required tasks are done, your Blocklist stays blocked."
             : "Added \(tasks.map(\.title).joined(separator: ", ")). Add more now or later."
     }
 
@@ -107,7 +107,7 @@ struct OnboardingView: View {
     private func page(_ title: String, _ subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
             Text(title)
-                .font(.system(size: 44, weight: .semibold))
+                .font(.largeTitle.weight(.semibold))
                 .foregroundStyle(DesignSystem.Colors.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
             Text(subtitle)

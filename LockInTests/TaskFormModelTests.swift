@@ -63,4 +63,27 @@ struct TaskFormModelTests {
         #expect(TaskFormModel.startTimeChoices.first == TimeOfDay(hour: 0, minute: 0))
         #expect(TaskFormModel.startTimeChoices.last == TimeOfDay.latest)
     }
+
+    @Test func saveHintSaysWhySaveIsOffFromTheStart() {
+        let store = LockInStore(storage: InMemoryStorage())
+        let model = TaskFormModel(editing: nil, store: store, calendar: calendar, now: { now }, onChange: {})
+        #expect(model.saveHint == TaskDraft.ValidationError.emptyTitle.message)  // before any typing
+        model.draft.title = "Gym"
+        model.draft.completesBy = .place
+        #expect(model.saveHint == "Pick a place.")
+        model.draft.completesBy = .tapping
+        #expect(model.saveHint == nil)
+    }
+
+    @Test func saveHintNamesALockModeViolation() {
+        let store = LockInStore(storage: InMemoryStorage())
+        let read = LockInTask(title: "Read", schedule: .weekly(Set(Weekday.allCases)), requirement: .required, createdOn: DayKey("2026-11-01")!)
+        store.write([read], to: .tasks)
+        var mode = LockMode()
+        mode.lock(days: 3, now: now)
+        store.write(mode, to: .lockMode)
+        let model = TaskFormModel(editing: read, store: store, calendar: calendar, now: { now }, onChange: {})
+        model.draft.requirement = .optional
+        #expect(model.saveHint == LockPolicy.Violation.makeOptional.message)
+    }
 }

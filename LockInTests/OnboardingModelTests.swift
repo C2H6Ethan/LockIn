@@ -63,6 +63,6 @@ struct OnboardingModelTests {
         let m = model(store: store)
         #expect(m.doneSubtitle == "Add a task whenever you're ready. Until then nothing is blocked.")
         store.write([LockInTask(title: "Read", schedule: .weekly(Set(Weekday.allCases)), requirement: .required, createdOn: DayKey("2026-11-10")!)], to: .tasks)
-        #expect(m.doneSubtitle == "Your apps are shielded until your required tasks are done.")
+        #expect(m.doneSubtitle == "Your apps stay blocked until your required tasks are done.")
     }
 }

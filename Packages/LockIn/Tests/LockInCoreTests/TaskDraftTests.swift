@@ -88,9 +88,12 @@ struct TaskDraftTests {
     }
 
     @Test func draftRoundTripsATaskUnchanged() throws {
-        let original = task("Gym", schedule: .once(day("2026-11-12")), requirement: .optional, startTime: TimeOfDay(hour: 18, minute: 0))
+        let original = task("Gym", schedule: .once(day("2026-11-12")), requirement: .required, startTime: TimeOfDay(hour: 18, minute: 0))
         let again = try #require(TaskDraft(task: original, today: today).makeTask(existing: original, today: today))
         #expect(again == original)
+        // Ticket 023: an Optional Task never blocks, so editing one drops its Start Time.
+        let optional = task("Stretch", requirement: .optional, startTime: TimeOfDay(hour: 18, minute: 0))
+        #expect(TaskDraft(task: optional, today: today).makeTask(existing: optional, today: today)?.startTime == nil)
     }
 
     @Test func invalidDraftMakesNoTask() {

@@ -3,7 +3,7 @@ import LockInCore
 import LockInPlatform
 import ManagedSettings
 
-/// Handles the Shield's buttons. "Lock In" closes it; "Earn access" sends a notification that opens the app.
+/// Handles the Shield's buttons. "Lock In" closes it; "Earn a Bypass" sends a notification that opens the app.
 final class ShieldActionExtension: ShieldActionDelegate {
     override func handle(action: ShieldAction, for application: ApplicationToken, completionHandler: @escaping (ShieldActionResponse) -> Void) {
         completionHandler(respond(to: action))
@@ -25,7 +25,7 @@ final class ShieldActionExtension: ShieldActionDelegate {
             UserNotificationPoster().post(
                 id: "earn-access",
                 title: "Earn a Bypass.",
-                body: steps.map { "Walk \($0) steps to lift the Shield for 15 minutes." } ?? "Tap to open Lock In.",
+                body: steps.map { "Walk \($0) steps to pause blocking for 15 minutes." } ?? "Tap to open Lock In.",
                 deepLink: DeepLink.bypass.url
             )
             store?.log("Shield: Bypass requested", source: .shieldAction)

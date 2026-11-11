@@ -61,7 +61,7 @@ final class OnboardingModel {
 
     var doneSubtitle: String {
         hasTasks
-            ? "Your apps are shielded until your required tasks are done."
+            ? "Your apps stay blocked until your required tasks are done."
             : "Add a task whenever you're ready. Until then nothing is blocked."
     }
 

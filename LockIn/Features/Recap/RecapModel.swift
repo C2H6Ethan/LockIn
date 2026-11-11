@@ -105,7 +105,7 @@ final class RecapModel: Identifiable {
     }
 
     var freezeLabel: String? {
-        freezeOffer.map { _ in "Use Streak Freeze to keep your \(recap.previousStreak)\u{2011}day Streak" }
+        freezeOffer.map { _ in "Use Streak Freeze to keep your \(recap.previousStreak)\u{2011}day streak" }
     }
 
     /// Spends this week's Freeze on the offered Missed Day, then acknowledges the recap.

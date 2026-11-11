@@ -42,7 +42,7 @@ If a decision changes the domain language, update `GLOSSARY.md`. If it's hard to
 
 ## Design
 
-- Colors: background `#0A0A0A`, text `#F5F5F0`, secondary `#6B6B6B`, accent `#E8D5A3`.
+- Colors: background `#0A0A0A`, text `#F5F5F0`, secondary `#8A8A8A`, accent `#E8D5A3`.
 - SF Pro. The `.serif` design variant is for shame messages only.
 - No cards and no borders: typography and whitespace only.
 - All constants live in `DesignSystem.swift`.

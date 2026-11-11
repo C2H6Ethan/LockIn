@@ -18,7 +18,7 @@ struct TodayWidget: Widget {
                 .widgetURL(DeepLink.today.url)
         }
         .configurationDisplayName("Today")
-        .description("Required tasks done and your Streak.")
+        .description("Required tasks done and your streak.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -86,7 +86,7 @@ struct TodayWidgetView: View {
                     .foregroundStyle(primary)
             } else {
                 Text("\(snapshot.requiredDone)/\(snapshot.requiredTotal)")
-                    .font(.system(size: 40, weight: .semibold).monospacedDigit())
+                    .font(.largeTitle.weight(.semibold).monospacedDigit())
                     .foregroundStyle(snapshot.isKept ? accent : primary)
                     .contentTransition(.numericText())
                 Text(snapshot.isKept ? "All done" : "required done")

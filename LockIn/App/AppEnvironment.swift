@@ -1,3 +1,4 @@
+import FamilyControls
 import Foundation
 import LockInCore
 import LockInPlatform
@@ -27,6 +28,17 @@ struct AppEnvironment {
         return AppEnvironment(store: enforcement.storeForReading, enforcement: enforcement, steps: steps, places: places)
     }
 
+    /// Platform input for the blocking status line.
+    var screenTimeAllowed: Bool {
+        #if DEBUG
+        if let override = DebugLaunch.screenTimeAllowed { return override }
+        #endif
+        return AuthorizationCenter.shared.authorizationStatus == .approved
+    }
+
+    /// Platform input for the blocking status line.
+    var blocklistIsEmpty: Bool { store.read(.blocklist).isEmpty }
+
     /// Called from `didFinishLaunching`, including background launches by HealthKit.
     func startBackgroundObservers() {
         let tasks = store.read(.tasks)
@@ -35,13 +47,14 @@ struct AppEnvironment {
     }
 
     /// Asks HealthKit for today's steps now, instead of waiting for background delivery (at most hourly,
-    /// never while locked, never after a force-quit). `onCompleted` runs on the main actor if a
-    /// Step-Goal Task was completed.
-    func refreshSteps(onCompleted: @escaping @MainActor @Sendable () -> Void = {}) {
+    /// never while locked, never after a force-quit). `onUpdate` runs on the main actor once today's total
+    /// is saved, so Today can show progress (and any Step-Goal Task it completed).
+    func refreshSteps(onUpdate: @escaping @MainActor @Sendable () -> Void = {}) {
         guard StepGoal.isInUse(store.read(.tasks)) else { return }
         steps.stepsToday { total in
-            guard let total, Enforcement.live(source: .app)?.recordSteps(total) == true else { return }
-            Task { @MainActor in onCompleted() }
+            guard let total else { return }
+            Enforcement.live(source: .app)?.recordSteps(total)
+            Task { @MainActor in onUpdate() }
         }
     }
 

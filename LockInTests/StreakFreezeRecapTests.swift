@@ -34,7 +34,7 @@ struct StreakFreezeRecapTests {
     @Test func offersAndSpendsAFreeze() throws {
         let store = store(missed: [])
         let m = try #require(RecapModel.pending(store: store, calendar: calendar, now: { now }))
-        #expect(m.freezeLabel == "Use Streak Freeze to keep your 5\u{2011}day Streak")
+        #expect(m.freezeLabel == "Use Streak Freeze to keep your 5\u{2011}day streak")
 
         m.useFreeze()
         #expect(store.read(.dayRecords)[DayKey("2026-11-10")!]?.outcome == .frozen)

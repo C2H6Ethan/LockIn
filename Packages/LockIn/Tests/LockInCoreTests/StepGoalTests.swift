@@ -54,6 +54,7 @@ struct StepGoalDraftTests {
     @Test func draftMakesAStepGoalTask() {
         var d = TaskDraft()
         d.title = "Walk"
+        d.completesBy = .steps
         d.stepTarget = 8000
         #expect(d.makeTask(existing: nil, today: today)?.kind == .stepGoal(target: 8000))
     }
@@ -62,6 +63,7 @@ struct StepGoalDraftTests {
     func targetOutOfRangeIsInvalid(target: Int) {
         var d = TaskDraft()
         d.title = "Walk"
+        d.completesBy = .steps
         d.stepTarget = target
         #expect(d.validate(otherTasks: [], today: today) == [.invalidStepTarget])
     }
@@ -70,6 +72,26 @@ struct StepGoalDraftTests {
         var t = task("Walk")
         t.kind = .stepGoal(target: 6000)
         #expect(TaskDraft(task: t, today: today).stepTarget == 6000)
-        #expect(TaskDraft(task: task("Read"), today: today).stepTarget == nil)
+        #expect(TaskDraft(task: task("Read"), today: today).completesBy == .tapping)
+    }
+}
+
+/// Ticket 023: Today shows "5,210 of 8,000 steps" from the last total the app read, or just the target when unknown.
+struct StepProgressTests {
+    let today = day("2026-11-10")
+
+    @Test func todaysTotalIsKnown() {
+        #expect(StepGoal.progress(stored: StepsToday(day: today, total: 5210), today: today) == 5210)
+    }
+
+    @Test func nothingReadOrAnotherDayIsUnknown() {
+        #expect(StepGoal.progress(stored: nil, today: today) == nil)
+        #expect(StepGoal.progress(stored: StepsToday(day: day("2026-11-09"), total: 9000), today: today) == nil)
+    }
+
+    @Test func storedTotalRoundTrips() throws {
+        let stored = StepsToday(day: today, total: 5210)
+        #expect(try JSONDecoder().decode(StepsToday.self, from: JSONEncoder().encode(stored)) == stored)
+        #expect(Document<StepsToday?>.stepsToday.key == "v3.stepsToday")
     }
 }

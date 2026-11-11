@@ -6,30 +6,60 @@ import Observation
 @Observable
 final class TodayModel {
     private(set) var today: Today
+    /// The blocking status line (see GLOSSARY: Blocking status).
+    private(set) var status: ShieldStatus
+    /// Counts the ticks that turned blocking off. The success haptic fires on this, and only this.
+    private(set) var shieldDrops = 0
+    /// Today's step total as last read by the app, or `nil` when unknown.
+    private(set) var stepsToday: Int?
+    /// Tasks that exist but aren't due today, for the empty state.
+    private(set) var tasksOnOtherDays = 0
 
     private let store: LockInStore
     private let calendar: Calendar
     private let now: () -> Date
     private let locate: () async -> Coordinate?
+    /// Platform inputs: Screen Time authorization and whether the Blocklist is empty.
+    private let screenTimeAllowed: () -> Bool
+    private let blocklistIsEmpty: () -> Bool
     private let onChange: () -> Void
     /// Why a tap didn't complete a Location Task, shown under its row until the next tap.
     private var messages: [LockInTask.ID: String] = [:]
     private(set) var checkingLocation: Set<LockInTask.ID> = []
 
     init(store: LockInStore, calendar: Calendar = .current, now: @escaping () -> Date = Date.init,
-         locate: @escaping () async -> Coordinate? = { nil }, onChange: @escaping () -> Void) {
+         locate: @escaping () async -> Coordinate? = { nil },
+         screenTimeAllowed: @escaping () -> Bool = { true }, blocklistIsEmpty: @escaping () -> Bool = { false },
+         onChange: @escaping () -> Void) {
         self.store = store
         self.calendar = calendar
         self.now = now
         self.locate = locate
+        self.screenTimeAllowed = screenTimeAllowed
+        self.blocklistIsEmpty = blocklistIsEmpty
         self.onChange = onChange
-        self.today = Today(day: DayKey(now(), calendar: calendar), tasks: store.read(.tasks), completions: store.read(.completions), calendar: calendar)
+        let day = DayKey(now(), calendar: calendar)
+        self.today = Today(day: day, tasks: [], completions: CompletionLog(), calendar: calendar)
+        self.status = ShieldStatus.current(now: now(), tasks: [], completions: CompletionLog(), bypasses: BypassLog(), lockMode: LockMode(),
+                                           screenTimeAllowed: true, blocklistIsEmpty: false, calendar: calendar)
+        reload()
     }
 
-    /// Re-reads the store and the current Day. Call on foreground and at midnight.
+    /// Re-reads the store and the current Day. Call on foreground, at midnight and when authorization changes.
     func reload() {
-        today = Today(day: DayKey(now(), calendar: calendar), tasks: store.read(.tasks), completions: store.read(.completions), calendar: calendar)
+        let now = now()
+        let day = DayKey(now, calendar: calendar)
+        let tasks = store.read(.tasks)
+        let completions = store.read(.completions)
+        today = Today(day: day, tasks: tasks, completions: completions, calendar: calendar)
+        status = ShieldStatus.current(now: now, tasks: tasks, completions: completions, bypasses: store.read(.bypasses),
+                                      lockMode: store.read(.lockMode), screenTimeAllowed: screenTimeAllowed(),
+                                      blocklistIsEmpty: blocklistIsEmpty(), calendar: calendar)
+        stepsToday = StepGoal.progress(stored: store.read(.stepsToday), today: day)
+        tasksOnOtherDays = tasks.filter { !$0.isDue(on: day, calendar: calendar) && !TaskList(tasks: [$0], today: day).isPast($0) }.count
     }
+
+    var statusText: ShieldStatus.Text { status.text(calendar: calendar) }
 
     /// Completes or un-completes a Task. Completing a Location Task may need a location fix first;
     /// the returned Task is that check, so callers (and tests) can await it.
@@ -65,9 +95,14 @@ final class TodayModel {
     func message(for task: LockInTask) -> String? { messages[task.id] }
 
     private func setCompleted(_ id: LockInTask.ID, _ completed: Bool, on day: DayKey) {
+        let tasks = store.read(.tasks)
         var log = store.read(.completions)
+        let wasOwed = !ShieldDecision.owedTasks(at: now(), tasks: tasks, completions: log, calendar: calendar).isEmpty
         log.set(id, completed: completed, on: day)
         store.saveCompletions(log, today: day, calendar: calendar)
+        if completed, wasOwed, ShieldDecision.owedTasks(at: now(), tasks: tasks, completions: log, calendar: calendar).isEmpty {
+            shieldDrops += 1
+        }
         reload()
         onChange()
     }
@@ -100,11 +135,19 @@ final class TodayModel {
         streak > 0 ? "\(streak)-day streak" : nil
     }
 
+    /// How far a Step-Goal Task is, 0...1, or `nil` when today's total is unknown.
+    func stepProgress(for task: LockInTask) -> Double? {
+        guard let target = task.stepTarget, target > 0, let steps = stepsToday else { return nil }
+        return min(1, Double(steps) / Double(target))
+    }
+
     /// "from 18:00" while a Required Task's Start Time is still ahead today.
     /// Step goal or place first, then a Start Time that hasn't passed yet.
     func subtitle(for task: LockInTask) -> String? {
         var parts: [String] = []
-        if let target = task.stepTarget { parts.append("\(target.formatted()) steps") }
+        if let target = task.stepTarget {
+            parts.append(stepsToday.map { "\(min($0, target).formatted()) of \(target.formatted()) steps" } ?? "\(target.formatted()) steps")
+        }
         if let place = task.place { parts.append(place.name) }
         if task.isRequired, let start = task.startTime, now() < today.day.instant(at: start, in: calendar) {
             parts.append("from \(start)")

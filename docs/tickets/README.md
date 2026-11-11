@@ -30,5 +30,6 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 | 020 | [Widget](020-widget.md) | done (device check pending) |
 | 021 | [Review prompt and launch screen](021-review-prompt-and-launch-screen.md) | done |
 | 022 | [Cutover](022-cutover.md) | todo |
+| 023 | [UX restructure](023-ux-restructure.md) (lands before 022's TestFlight step) | done |
 
 v2 reference: the old implementation stays readable on `main` until 022. Read it for copy and behavior details, never copy its structure.

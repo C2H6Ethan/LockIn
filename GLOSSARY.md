@@ -4,6 +4,8 @@ An iOS app that keeps distracting apps and websites blocked each day until the u
 
 ## Language
 
+_Copy rule:_ on screen, capitalize named features (Blocklist, Bypass, Lock Mode, Streak Freeze, Screen Time) and keep everyday nouns lowercase (task, required, optional, streak, day): "Your 12-day streak ended." Code keeps the capitalized type names below.
+
 **Task**:
 Something the user commits to doing, on a recurring schedule or once.
 _Avoid_: Habit, mission, todo
@@ -36,8 +38,12 @@ The apps, app categories and websites the user has chosen to be shielded.
 _Avoid_: Selection, selected apps, groups
 
 **Shield**:
-The system block screen covering a blocked app or website while the user still owes Tasks for the Day.
-_Avoid_: Lock, block screen, shame screen
+The system block screen covering a blocked app or website while the user still owes Tasks for the Day. "Shield" is the code term (Apple's ManagedSettings name). On screen, say **blocking**: "Blocking on", "Blocks from 18:00 until done", "pause blocking".
+_Avoid_: Lock, block screen, shame screen; "Shield" in user-facing copy
+
+**Blocking status**:
+The one line on Today that says whether blocking is on and why: "Blocking on · 3 required tasks left", "Blocking from 23:30", "Blocking off · Day kept", "Blocking resumes at 14:05", "Blocking can't start: allow Screen Time access". Code: `ShieldStatus`.
+_Avoid_: Shield status, lock state
 
 **Missed Day**:
 A Day that ended with at least one due Required Task not completed. Its Tasks do not move to the next Day.
@@ -68,10 +74,14 @@ _Avoid_: Steps task, HealthKit task
 A Task that can only be completed after the user has visited its place on that Day.
 _Avoid_: Location-verified task, geofence task
 
+**Completes by**:
+How a Task gets done, chosen once per Task: **Tapping** (the user ticks it off), **Steps** (a Step-Goal Task) or **Place** (a Location Task). Code: `LockInTask.Kind` (`.standard`, `.stepGoal`, `.location`).
+_Avoid_: Task type, mode, verification
+
 ## Escaping and committing
 
 **Bypass**:
-A short window, earned by walking a number of steps, during which the Shield is lifted although Required Tasks remain. Each Bypass on a Day costs more steps than the last.
+A short window, earned by walking a number of steps, during which the Shield is lifted (on screen: blocking is paused) although Required Tasks remain. Each Bypass on a Day costs more steps than the last.
 _Avoid_: Unblock, break, stepping, access window
 
 **Lock Mode**:

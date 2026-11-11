@@ -12,10 +12,6 @@ struct SettingsModelTests {
     }()
     var now: Date { calendar.date(from: DateComponents(year: 2026, month: 11, day: 10, hour: 12))! }
 
-    func makeTask(_ title: String, _ schedule: Schedule, _ requirement: Requirement = .required, start: TimeOfDay? = nil) -> LockInTask {
-        LockInTask(title: title, schedule: schedule, requirement: requirement, startTime: start, createdOn: DayKey("2026-11-01")!)
-    }
-
     func model(_ store: LockInStore, onChange: @escaping () -> Void = {}) -> SettingsModel {
         SettingsModel(store: store, calendar: calendar, now: { now }, onChange: onChange)
     }
@@ -32,34 +28,14 @@ struct SettingsModelTests {
         #expect(changes == 2)
     }
 
-    @Test func listsAllTasksRequiredFirstIncludingOnesNotDueToday() {
+    @Test func lockPreviewMatchesWhatLockingSaves() {
         let store = LockInStore(storage: InMemoryStorage())
-        store.write([
-            makeTask("Stretch", .weekly(Set(Weekday.allCases)), .optional),
-            makeTask("Weekend run", .weekly([.saturday, .sunday])),
-            makeTask("Read", .weekly(Set(Weekday.allCases))),
-        ], to: .tasks)
         let m = model(store)
-        #expect(m.requiredTasks.map(\.title) == ["Read", "Weekend run"])
-        #expect(m.optionalTasks.map(\.title) == ["Stretch"])
-    }
-
-    @Test func describesSchedules() {
-        let m = model(LockInStore(storage: InMemoryStorage()))
-        #expect(m.describe(makeTask("A", .weekly(Set(Weekday.allCases)))) == "Every day")
-        #expect(m.describe(makeTask("A", .weekly([.monday, .tuesday, .wednesday, .thursday, .friday]))) == "Weekdays")
-        #expect(m.describe(makeTask("A", .weekly([.saturday, .sunday]))) == "Weekends")
-        #expect(m.describe(makeTask("A", .weekly([.friday, .monday, .wednesday]))) == "Mon, Wed, Fri")
-        #expect(m.describe(makeTask("A", .once(DayKey("2026-11-12")!), start: TimeOfDay(hour: 18, minute: 0))) == "Thu, Nov 12 · from 18:00")
-        #expect(m.describe(makeTask("A", .once(DayKey("2026-11-10")!))) == "Today")
-    }
-
-    @Test func pastOneTimeTasksAreListedLast() {
-        let store = LockInStore(storage: InMemoryStorage())
-        store.write([
-            makeTask("Old", .once(DayKey("2026-11-02")!)),
-            makeTask("Read", .weekly(Set(Weekday.allCases))),
-        ], to: .tasks)
-        #expect(model(store).requiredTasks.map(\.title) == ["Read", "Old"])
+        let preview = m.lockedUntil(ifLockedFor: 7)
+        #expect(preview == now.addingTimeInterval(7 * 86_400))
+        #expect(m.lockedUntil == nil)          // previewing doesn't lock
+        m.lock(days: 7)
+        #expect(m.lockedUntil == preview)
+        #expect(m.lockedUntil(ifLockedFor: 1) == preview)  // extending never shortens
     }
 }

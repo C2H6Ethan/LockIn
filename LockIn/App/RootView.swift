@@ -1,3 +1,4 @@
+import FamilyControls
 import LockInCore
 import LockInPlatform
 import SwiftUI
@@ -12,6 +13,7 @@ struct RootView: View {
     @State private var path: [Route] = []
     @State private var needsOnboarding: Bool
     @State private var showsBypass = false
+    @State private var showsBlocklist = false
 
     init(environment: AppEnvironment, router: DeepLinkRouter) {
         self.environment = environment
@@ -19,7 +21,7 @@ struct RootView: View {
         _needsOnboarding = State(initialValue: !environment.store.read(.settings).hasCompletedOnboarding)
     }
 
-    private enum Route: Hashable { case settings }
+    private enum Route: Hashable { case settings, tasks }
     @Environment(\.scenePhase) private var scenePhase
 
     /// What the Task form is open for.
@@ -48,20 +50,45 @@ struct RootView: View {
         }
     }
 
+    /// The status line asked for something it can't do itself.
+    private func statusAction(_ state: ShieldStatus.State) {
+        switch state {
+        case .needsScreenTime:
+            Task {
+                try? await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+                environment.stateDidChange()
+                dataVersion += 1
+            }
+        case .needsBlocklist:
+            showsBlocklist = true
+        default:
+            break
+        }
+    }
+
     private var main: some View {
         NavigationStack(path: $path) {
             TodayView(
-                model: TodayModel(store: environment.store, locate: { await CurrentLocation.fix() }, onChange: environment.stateDidChange),
+                model: TodayModel(store: environment.store, locate: { await CurrentLocation.fix() },
+                                  screenTimeAllowed: { environment.screenTimeAllowed },
+                                  blocklistIsEmpty: { environment.blocklistIsEmpty },
+                                  onChange: environment.stateDidChange),
                 onAddTask: { formTask = .new },
-                onEditTask: { formTask = .edit($0) }
+                onEditTask: { formTask = .edit($0) },
+                onShowTasks: { path = [.tasks] },
+                onStatusAction: statusAction
             )
                 .id(dataVersion)
                 .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItemGroup(placement: .topBarTrailing) {
+                        NavigationLink(value: Route.tasks) {
+                            Image(systemName: "list.bullet").foregroundStyle(DesignSystem.Colors.secondaryText)
+                        }
+                        .accessibilityLabel("Tasks")
                         Button { formTask = .new } label: {
                             Image(systemName: "plus").foregroundStyle(DesignSystem.Colors.accent)
                         }
-                        .accessibilityLabel("Add Task")
+                        .accessibilityLabel("Add task")
                     }
                     ToolbarItem(placement: .topBarLeading) {
                         NavigationLink(value: Route.settings) {
@@ -76,7 +103,11 @@ struct RootView: View {
                     case .settings:
                         SettingsView(
                             model: SettingsModel(store: environment.store, onChange: environment.stateDidChange),
-                            environment: environment,
+                            environment: environment
+                        )
+                    case .tasks:
+                        TasksView(
+                            model: TasksModel(store: environment.store),
                             onAddTask: { formTask = .new },
                             onEditTask: { formTask = .edit($0) },
                             dataVersion: dataVersion
@@ -89,6 +120,10 @@ struct RootView: View {
         .onAppear {
             if DebugLaunch.opensNewTask { formTask = .new }
             if DebugLaunch.opensSettings { Task { path = [.settings] } }
+            if DebugLaunch.opensTasks { Task { path = [.tasks] } }
+            if DebugLaunch.opensLockSheet { Task { path = [.settings] } }
+            if let title = DebugLaunch.editsTaskTitled,
+               let task = environment.store.read(.tasks).first(where: { $0.title == title }) { formTask = .edit(task) }
             if DebugLaunch.opensBypass { showsBypass = true }
         }
         #endif
@@ -112,6 +147,9 @@ struct RootView: View {
             formTask = nil
             path = []
             showsBypass = link == .bypass
+        }
+        .sheet(isPresented: $showsBlocklist, onDismiss: { dataVersion += 1 }) {
+            BlocklistEditorView(model: BlocklistEditorModel(store: environment.store, onSave: environment.stateDidChange))
         }
         .fullScreenCover(isPresented: $showsBypass, onDismiss: { dataVersion += 1 }) {
             BypassView(model: BypassModel(

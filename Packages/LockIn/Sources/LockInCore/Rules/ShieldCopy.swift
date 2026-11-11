@@ -3,7 +3,7 @@ import Foundation
 /// Words on the system Shield. Kept in the core so the shield extension holds no copy of its own.
 public enum ShieldCopy {
     public static let primaryButton = "Lock In"
-    public static let secondaryButton = "Earn access"
+    public static let secondaryButton = "Earn a Bypass"
 
     public static let shameMessages = [
         "Do the work now. Enjoy the reward later.",
@@ -60,7 +60,7 @@ public enum Palette {
 
     public static let background = RGB(0x0A0A0A)
     public static let primaryText = RGB(0xF5F5F0)
-    public static let secondaryText = RGB(0x6B6B6B)
+    public static let secondaryText = RGB(0x8A8A8A)
     public static let accent = RGB(0xE8D5A3)
     public static let destructive = RGB(0xFF4444)
 }

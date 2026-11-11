@@ -31,7 +31,8 @@ public final class PlaceMonitor: Sendable {
 
     /// Serializes access to the one `CLMonitor` and its single event stream.
     private actor Core {
-        static let monitorName = "lockin.places"
+        /// Letters only: CLMonitor rejects some characters (a dot crashes with "Monitor name is not valid").
+        static let monitorName = "lockinPlaces"
 
         private let onVisit: @Sendable (LockInTask.ID) -> Void
         private var monitor: CLMonitor?

@@ -2,10 +2,11 @@ import LockInCore
 import LockInPlatform
 import SwiftUI
 
-/// Opened from the Shield's "Earn access" notification (`lockin://bypass`).
+/// Opened from the Shield's "Earn a Bypass" notification (`lockin://bypass`).
 struct BypassView: View {
     @State var model: BypassModel
     @Environment(\.dismiss) private var dismiss
+    @ScaledMetric(relativeTo: .largeTitle) private var counterSize = DesignSystem.Size.stepCounter
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -32,37 +33,42 @@ struct BypassView: View {
         case .walking(let steps, let goal):
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
                 Text(steps, format: .number)
-                    .font(.system(size: 88, weight: .semibold).monospacedDigit())
+                    .font(DesignSystem.Typography.display(size: counterSize))
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
                     .foregroundStyle(DesignSystem.Colors.primaryText)
+                    .accessibilityLabel("\(steps.formatted()) of \(goal.formatted()) steps")
                     .contentTransition(.numericText())
                     .animation(.default, value: steps)
-                Text("of \(goal) steps")
+                Text("of \(goal.formatted()) steps")
                     .font(.title3)
+                    .accessibilityHidden(true)
                     .foregroundStyle(DesignSystem.Colors.secondaryText)
                 Text(model.status)
                     .font(.body)
                     .foregroundStyle(DesignSystem.Colors.accent)
                     .padding(.top, DesignSystem.Spacing.lg)
-                Text("Walk to lift the Shield for 15 minutes. Keep your iPhone on you: Apple Watch steps don't count here. Each Bypass today costs more.")
+                Text("Walk \(goal.formatted()) steps to pause blocking for 15 minutes. Carry your iPhone: Apple Watch steps don't count here. Each Bypass today costs more steps.")
                     .font(.footnote)
                     .foregroundStyle(DesignSystem.Colors.secondaryText)
                     .padding(.top, DesignSystem.Spacing.sm)
             }
         case .active(let until):
-            message("You gave in.", "Shield back at \(until.formatted(date: .omitted, time: .shortened)).")
+            message("You gave in.", "Blocking resumes at \(until.formatted(date: .omitted, time: .shortened)).")
         case .nothingOwed:
-            message("Nothing to bypass.", "No Required Tasks are holding the Shield up right now.")
+            message("Nothing to bypass.", "Nothing is blocked right now.")
         case .unavailable:
-            message("Steps unavailable.", "This device can't count steps, so it can't earn a Bypass.")
+            message("Can't count steps.", "This device has no step counter, so a Bypass can't be earned here.")
         case .motionDenied:
-            message("Steps unavailable.", "Allow Motion & Fitness for Lock In in Settings → Privacy & Security to earn a Bypass.")
+            message("Can't count steps.", "To earn a Bypass, open Settings → Privacy & Security → Motion & Fitness and turn on Lock In.")
         }
     }
 
     private func message(_ title: String, _ subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             Text(title)
-                .font(.system(size: 44, weight: .semibold))
+                .font(.largeTitle.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
                 .foregroundStyle(DesignSystem.Colors.primaryText)
             Text(subtitle)
                 .font(.body)
