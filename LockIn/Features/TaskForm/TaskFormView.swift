@@ -33,7 +33,18 @@ struct TaskFormView: View {
                         }
                     }
 
-                    if model.isEditing {
+                    if let until = model.lockedUntil {
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                            Text("Locked until \(until.formatted(date: .abbreviated, time: .shortened)). You can only make this task stricter.")
+                                .foregroundStyle(DesignSystem.Colors.secondaryText)
+                            ForEach(model.lockViolations, id: \.self) { violation in
+                                Text(violation.message).foregroundStyle(DesignSystem.Colors.destructive)
+                            }
+                        }
+                        .font(.footnote)
+                    }
+
+                    if model.canDelete {
                         Button("Delete Task", role: .destructive) { confirmsDelete = true }
                             .foregroundStyle(DesignSystem.Colors.destructive)
                             .padding(.top, DesignSystem.Spacing.lg)

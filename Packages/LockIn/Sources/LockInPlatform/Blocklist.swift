@@ -31,3 +31,15 @@ extension Document where Value == Blocklist {
     public static let blocklist = Document("blocklist") { Blocklist() }
 }
 #endif
+
+#if os(iOS)
+extension LockPolicy {
+    /// Lock Mode lets the Blocklist gain apps, categories and websites, never lose any.
+    public static func allows(from old: Blocklist, to new: Blocklist) -> Bool {
+        allowsSetChange(from: old.selection.applicationTokens, to: new.selection.applicationTokens)
+            && allowsSetChange(from: old.selection.categoryTokens, to: new.selection.categoryTokens)
+            && allowsSetChange(from: old.selection.webDomainTokens, to: new.selection.webDomainTokens)
+            && allowsSetChange(from: Set(old.customDomains), to: Set(new.customDomains))
+    }
+}
+#endif

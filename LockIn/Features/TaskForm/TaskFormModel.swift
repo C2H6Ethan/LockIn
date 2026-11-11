@@ -46,13 +46,32 @@ final class TaskFormModel {
         draft.validate(otherTasks: otherTasks, today: today)
     }
 
-    var canSave: Bool { errors.isEmpty }
+    var canSave: Bool { errors.isEmpty && lockViolations.isEmpty }
+
+    // MARK: Lock Mode
+
+    /// When Lock Mode ends, if it's on.
+    var lockedUntil: Date? {
+        let mode = store.read(.lockMode)
+        return mode.isActive(at: now()) ? mode.lockedUntil : nil
+    }
+
+    /// What this edit would weaken; empty outside Lock Mode.
+    var lockViolations: [LockPolicy.Violation] {
+        guard lockedUntil != nil, let existing,
+              let edited = draft.makeTask(existing: existing, today: today, otherTasks: otherTasks)
+        else { return [] }
+        return LockPolicy.violations(from: existing, to: edited)
+    }
+
+    var canDelete: Bool { isEditing && lockedUntil == nil }
 
     /// Returns whether the Task was saved.
     @discardableResult
     func save() -> Bool {
         let others = otherTasks
-        guard let task = draft.makeTask(existing: existing, today: today, otherTasks: others) else { return false }
+        guard lockViolations.isEmpty,
+              let task = draft.makeTask(existing: existing, today: today, otherTasks: others) else { return false }
         var tasks = store.read(.tasks)
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks[index] = task
@@ -65,7 +84,7 @@ final class TaskFormModel {
     }
 
     func delete() {
-        guard let existing else { return }
+        guard let existing, canDelete else { return }
         store.write(store.read(.tasks).filter { $0.id != existing.id }, to: .tasks)
         onChange()
     }

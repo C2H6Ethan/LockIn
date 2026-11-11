@@ -14,6 +14,7 @@ struct SettingsView: View {
 
     @State private var showsBlocklist = false
     @State private var showsEventLog = false
+    @State private var choosesLockDuration = false
     @ObservedObject private var authorization = AuthorizationCenter.shared
 
     var body: some View {
@@ -22,6 +23,7 @@ struct SettingsView: View {
                 tasksSection
                 blockingSection
                 reminderSection
+                lockSection
                 Text(model.appVersion)
                     .font(.footnote)
                     .foregroundStyle(DesignSystem.Colors.secondaryText)
@@ -125,6 +127,35 @@ struct SettingsView: View {
             Text("Only sent if required tasks are still open.")
                 .font(.footnote)
                 .foregroundStyle(DesignSystem.Colors.secondaryText)
+        }
+    }
+
+    private var lockSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            SectionLabel("Lock Mode")
+            if let until = model.lockedUntil {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
+                    Text("Locked until \(until.formatted(date: .abbreviated, time: .shortened))")
+                        .foregroundStyle(DesignSystem.Colors.primaryText)
+                    Text("You can add tasks and add to the Blocklist, but not remove or weaken anything.")
+                        .font(.subheadline)
+                        .foregroundStyle(DesignSystem.Colors.secondaryText)
+                }
+                Button("Extend") { choosesLockDuration = true }
+                    .foregroundStyle(DesignSystem.Colors.accent)
+            } else {
+                row(title: "Lock Mode", detail: "Commit for a while: only stricter changes allowed") { choosesLockDuration = true }
+            }
+            Text("Turning off Screen Time access in iOS Settings can't be prevented.")
+                .font(.footnote)
+                .foregroundStyle(DesignSystem.Colors.secondaryText)
+        }
+        .confirmationDialog("Lock for how long?", isPresented: $choosesLockDuration, titleVisibility: .visible) {
+            ForEach(LockMode.durations, id: \.self) { days in
+                Button(days == 1 ? "1 day" : "\(days) days") { model.lock(days: days) }
+            }
+        } message: {
+            Text("Until it ends you can't delete tasks, make them optional, or remove anything from the Blocklist. It can't be ended early.")
         }
     }
 

@@ -29,6 +29,20 @@ final class SettingsModel {
 
     private var today: DayKey { DayKey(now(), calendar: calendar) }
 
+    /// When Lock Mode ends, if it's on.
+    var lockedUntil: Date? {
+        let mode = store.read(.lockMode)
+        return mode.isActive(at: now()) ? mode.lockedUntil : nil
+    }
+
+    /// Starts or extends Lock Mode. There is no way to end it early.
+    func lock(days: Int) {
+        var mode = store.read(.lockMode)
+        mode.lock(days: days, now: now())
+        store.write(mode, to: .lockMode)
+        reload()
+    }
+
     var requiredTasks: [LockInTask] { sorted(tasks.filter(\.isRequired)) }
     var optionalTasks: [LockInTask] { sorted(tasks.filter { !$0.isRequired }) }
 

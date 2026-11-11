@@ -9,15 +9,25 @@ final class BlocklistEditorModel {
     var blocklist: Blocklist
     var domainInput = ""
     private(set) var domainError: String?
+    /// Why a removal or Save was refused in Lock Mode.
+    private(set) var lockMessage: String?
 
     private let store: LockInStore
+    private let now: () -> Date
     private let onSave: () -> Void
+    private let saved: Blocklist
 
-    init(store: LockInStore, onSave: @escaping () -> Void) {
+    static let lockedText = "Lock Mode is on: you can add to the Blocklist, not remove from it."
+
+    init(store: LockInStore, now: @escaping () -> Date = Date.init, onSave: @escaping () -> Void) {
         self.store = store
+        self.now = now
         self.onSave = onSave
-        self.blocklist = store.read(.blocklist)
+        self.saved = store.read(.blocklist)
+        self.blocklist = saved
     }
+
+    var isLocked: Bool { store.read(.lockMode).isActive(at: now()) }
 
     var pickedSummary: String {
         let parts = [
@@ -43,6 +53,10 @@ final class BlocklistEditorModel {
     }
 
     func removeDomains(at offsets: IndexSet) {
+        guard !isLocked else {
+            lockMessage = Self.lockedText
+            return
+        }
         for index in offsets.sorted(by: >) { blocklist.customDomains.remove(at: index) }
     }
 
@@ -50,8 +64,15 @@ final class BlocklistEditorModel {
         n == 0 ? nil : "\(n) \(n == 1 ? singular : plural)"
     }
 
-    func save() {
+    /// Returns whether it was saved. In Lock Mode, anything that removes an item is refused.
+    @discardableResult
+    func save() -> Bool {
+        if isLocked, !LockPolicy.allows(from: saved, to: blocklist) {
+            lockMessage = Self.lockedText
+            return false
+        }
         store.write(blocklist, to: .blocklist)
         onSave()
+        return true
     }
 }

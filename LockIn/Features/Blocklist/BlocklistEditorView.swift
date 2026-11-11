@@ -36,13 +36,20 @@ struct BlocklistEditorView: View {
                         Button("Add", action: model.addDomain)
                             .disabled(model.domainInput.isEmpty)
                     }
+                    if let message = model.lockMessage {
+                        Text(message)
+                            .font(.footnote)
+                            .foregroundStyle(DesignSystem.Colors.destructive)
+                    }
                     if let error = model.domainError {
                         Text(error)
                             .font(.footnote)
                             .foregroundStyle(DesignSystem.Colors.secondaryText)
                     }
                     ForEach(model.blocklist.customDomains, id: \.self) { domain in
-                        Text(domain).foregroundStyle(DesignSystem.Colors.primaryText)
+                        Text(domain)
+                            .foregroundStyle(DesignSystem.Colors.primaryText)
+                            .deleteDisabled(model.isLocked)
                     }
                     .onDelete(perform: model.removeDomains)
                 } header: {
@@ -59,10 +66,13 @@ struct BlocklistEditorView: View {
             .navigationTitle("Blocklist")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(DesignSystem.Colors.secondaryText)
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        model.save()
-                        dismiss()
+                        if model.save() { dismiss() }
                     }
                 }
             }
