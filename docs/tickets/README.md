@@ -12,7 +12,7 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 | 002 | [Core rules: Task, Due, Today, Shield decision](002-core-rules.md) | done |
 | 003 | [Shared store](003-shared-store.md) | done |
 | 004 | [Blocklist and shield adapter](004-blocklist-and-shield-adapter.md) | done (device checks pending) |
-| 005 | [Background enforcement](005-background-enforcement.md) | todo |
+| 005 | [Background enforcement](005-background-enforcement.md) | done (device checks pending) |
 | 006 | [Today screen](006-today-screen.md) | todo |
 | 007 | [Task form](007-task-form.md) | todo |
 | 008 | [Day records and Streak](008-day-records-and-streak.md) | todo |

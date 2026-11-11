@@ -6,18 +6,17 @@ import LockInPlatform
 @MainActor
 struct AppEnvironment {
     let store: LockInStore
-    let shieldEnforcer: ShieldEnforcer
+    let enforcement: Enforcement
 
     static func live() -> AppEnvironment {
-        guard let storage = UserDefaultsStorage.appGroup() else {
+        guard let enforcement = Enforcement.live(source: .app) else {
             fatalError("App Group \(AppGroup.id) is missing from the entitlements.")
         }
-        let store = LockInStore(storage: storage)
-        return AppEnvironment(store: store, shieldEnforcer: ShieldEnforcer(store: store, applier: .live()))
+        return AppEnvironment(store: enforcement.storeForReading, enforcement: enforcement)
     }
 
     /// Re-applies everything that depends on Tasks, the Blocklist or settings. Call after every change.
     func stateDidChange() {
-        shieldEnforcer.reevaluate()
+        enforcement.refresh(reason: "state changed")
     }
 }

@@ -1,6 +1,6 @@
 # 005: Background enforcement
 
-Status: todo
+Status: done (device checks pending)
 Depends on: 004
 
 ## Goal
@@ -33,3 +33,9 @@ Day, Start Time, Shield
 ## Tests first
 - Registrar diff tests with a fake `DeviceActivityCenter`: missing activities are started, stale ones stopped, and a second run with no changes does nothing.
 - Activity naming round-trips `TimeOfDay` to `start-HHmm` and back.
+
+## Notes
+- `Enforcement.refresh(reason:)` in `LockInPlatform` does sync + Shield + log. The app calls it on launch, on every foreground and after every change. The DeviceActivityMonitor extension calls it on every `intervalDidStart`.
+- The extension also re-syncs schedules, so the set heals itself at midnight even if the app is never opened (for example, when a one-time Task's Day passes).
+- The registrar stops every activity that isn't desired, which also removes v2's `com.ethanbaumgartner.lockin.*` activities after the update.
+- The event log is reachable from the temporary debug home (moves into Settings in 011).
