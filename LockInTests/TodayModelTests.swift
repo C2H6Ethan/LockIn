@@ -71,3 +71,21 @@ struct TodayModelTests {
         #expect(model.dateHeader == "Tuesday, Nov 10")
     }
 }
+
+@MainActor
+struct TodayStreakTests {
+    @Test func streakIncludesTodayOnceKept() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Zurich")!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 11, day: 11, hour: 12))!
+        let store = LockInStore(storage: InMemoryStorage())
+        let read = LockInTask(title: "Read", schedule: .weekly(Set(Weekday.allCases)), requirement: .required, createdOn: DayKey("2026-11-10")!)
+        store.write([read], to: .tasks)
+        store.write(Settings(hasCompletedOnboarding: true, firstDay: DayKey("2026-11-10")!), to: .settings)
+        store.write([DayKey("2026-11-10")!: DayRecord(day: DayKey("2026-11-10")!, requiredDue: [], completedRequired: [], outcome: .kept)], to: .dayRecords)
+        let model = TodayModel(store: store, calendar: calendar, now: { now }, onChange: {})
+        #expect(model.streakLabel == "1-day streak")
+        model.toggle(read.id)
+        #expect(model.streakLabel == "2-day streak")
+    }
+}

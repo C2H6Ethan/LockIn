@@ -9,11 +9,14 @@ public struct Settings: Hashable, Codable, Sendable {
     public var hasCompletedOnboarding: Bool
     /// The Day onboarding finished. Day records (008) start here.
     public var firstDay: DayKey?
+    /// A Streak imported from v2 (014).
+    public var streakSeed: StreakSeed?
 
-    public init(reminderTime: TimeOfDay? = Settings.defaultReminderTime, hasCompletedOnboarding: Bool = false, firstDay: DayKey? = nil) {
+    public init(reminderTime: TimeOfDay? = Settings.defaultReminderTime, hasCompletedOnboarding: Bool = false, firstDay: DayKey? = nil, streakSeed: StreakSeed? = nil) {
         self.reminderTime = reminderTime
         self.hasCompletedOnboarding = hasCompletedOnboarding
         self.firstDay = firstDay
+        self.streakSeed = streakSeed
     }
 
     /// Missing fields fall back to defaults so older documents keep decoding.
@@ -22,5 +25,6 @@ public struct Settings: Hashable, Codable, Sendable {
         reminderTime = c.contains(.reminderTime) ? try c.decode(TimeOfDay?.self, forKey: .reminderTime) : Settings.defaultReminderTime
         hasCompletedOnboarding = try c.decodeIfPresent(Bool.self, forKey: .hasCompletedOnboarding) ?? false
         firstDay = try c.decodeIfPresent(DayKey.self, forKey: .firstDay)
+        streakSeed = try c.decodeIfPresent(StreakSeed.self, forKey: .streakSeed)
     }
 }

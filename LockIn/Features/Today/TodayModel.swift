@@ -44,6 +44,16 @@ final class TodayModel {
         return date.formatted(style)
     }
 
+    /// Consecutive Kept Days including today once it's kept.
+    var streak: Int {
+        let settings = store.read(.settings)
+        return Streak.current(records: store.read(.dayRecords), today: today, firstDay: settings.firstDay, seed: settings.streakSeed, calendar: calendar)
+    }
+
+    var streakLabel: String? {
+        streak > 0 ? "\(streak)-day streak" : nil
+    }
+
     /// "from 18:00" while a Required Task's Start Time is still ahead today.
     func subtitle(for task: LockInTask) -> String? {
         guard task.isRequired, let start = task.startTime,

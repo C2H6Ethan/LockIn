@@ -1,6 +1,6 @@
 # 008: Day records and Streak
 
-Status: todo
+Status: done
 Depends on: 007
 
 ## Goal
@@ -37,3 +37,8 @@ Day, Kept Day, Missed Day, Streak
 - Finalising twice yields identical records.
 - Editing a Task after its Day ended does not change that Day's snapshot.
 - Streak seed: a seed of 12 as of yesterday plus today kept gives 13.
+
+## Notes
+- Finalizing runs inside `Enforcement.refresh`, so the extension's midnight run and every app foreground both do it. New records are written to the event log.
+- Day records are kept indefinitely (about 100 bytes per Day). The Streak walks them back from yesterday.
+- `StreakSeed` lives in `Settings` and only applies when the run reaches the first Day unbroken.

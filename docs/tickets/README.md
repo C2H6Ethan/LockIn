@@ -15,7 +15,7 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 | 005 | [Background enforcement](005-background-enforcement.md) | done (device checks pending) |
 | 006 | [Today screen](006-today-screen.md) | done (device check pending) |
 | 007 | [Task form](007-task-form.md) | done |
-| 008 | [Day records and Streak](008-day-records-and-streak.md) | todo |
+| 008 | [Day records and Streak](008-day-records-and-streak.md) | done |
 | 009 | [Missed-Day Recap](009-missed-day-recap.md) | todo |
 | 010 | [Reminder](010-reminder.md) | todo |
 | 011 | [Settings](011-settings.md) | todo |

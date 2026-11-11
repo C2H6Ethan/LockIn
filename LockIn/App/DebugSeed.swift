@@ -20,6 +20,12 @@ enum DebugSeed {
         var log = CompletionLog()
         log.set(read.id, completed: true, on: today)
         store.write(log, to: .completions)
+        var settings = store.read(.settings)
+        settings.hasCompletedOnboarding = true
+        settings.firstDay = today
+        settings.streakSeed = StreakSeed(count: 11, asOf: today.adding(days: -1, in: calendar))
+        store.write(settings, to: .settings)
+        store.write([:], to: .dayRecords)
     }
 }
 #endif

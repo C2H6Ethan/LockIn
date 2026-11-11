@@ -47,6 +47,12 @@ struct TodayView: View {
             Text("Today")
                 .font(.system(.largeTitle, weight: .semibold))
                 .foregroundStyle(DesignSystem.Colors.primaryText)
+            if let streak = model.streakLabel {
+                Text(streak)
+                    .font(.subheadline.weight(.medium).monospacedDigit())
+                    .foregroundStyle(DesignSystem.Colors.accent)
+                    .contentTransition(.numericText())
+            }
         }
     }
 
