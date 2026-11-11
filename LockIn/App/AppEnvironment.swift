@@ -12,6 +12,9 @@ struct AppEnvironment {
         guard let enforcement = Enforcement.live(source: .app) else {
             fatalError("App Group \(AppGroup.id) is missing from the entitlements.")
         }
+        #if DEBUG
+        DebugSeed.applyIfRequested(to: enforcement.storeForReading)
+        #endif
         return AppEnvironment(store: enforcement.storeForReading, enforcement: enforcement)
     }
 

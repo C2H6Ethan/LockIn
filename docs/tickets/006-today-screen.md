@@ -1,6 +1,6 @@
 # 006: Today screen
 
-Status: todo
+Status: done (device check pending)
 Depends on: 005
 
 ## Goal
@@ -23,3 +23,8 @@ Today, Required Task, Optional Task, Shield
 
 ## Tests first
 - View-model tests with the in-memory store and a fake `ShieldApplier`: completion toggles the store, and the shield is applied or cleared per `ShieldDecision`.
+
+## Notes
+- Debug builds accept a `-seed` launch argument that fills the store with sample Tasks (`LockIn/App/DebugSeed.swift`).
+- Debug links (Screen Time permission, Blocklist, event log) live in a temporary toolbar menu until 011/012.
+- Day rollover while the app is open is handled by `UIApplication.significantTimeChangeNotification`.
