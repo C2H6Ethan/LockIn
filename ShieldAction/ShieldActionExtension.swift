@@ -1,3 +1,4 @@
+import Foundation
 import LockInCore
 import LockInPlatform
 import ManagedSettings
