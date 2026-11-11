@@ -1,6 +1,6 @@
 # 001: Scaffold the rewrite
 
-Status: todo
+Status: done (device install pending, batched with 005)
 Depends on: none
 
 ## Goal

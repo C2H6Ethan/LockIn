@@ -1,38 +1,27 @@
 {
-  "images" : [
+  "images": [
     {
-      "filename" : "Logo.png",
-      "idiom" : "universal",
-      "scale" : "1x"
+      "filename": "Logo.png",
+      "idiom": "universal",
+      "scale": "1x"
     },
     {
-      "appearances" : [
+      "appearances": [
         {
-          "appearance" : "luminosity",
-          "value" : "dark"
+          "appearance": "luminosity",
+          "value": "dark"
         }
       ],
-      "filename" : "Logo Dark.png",
-      "idiom" : "universal",
-      "scale" : "1x"
-    },
-    {
-      "appearances" : [
-        {
-          "appearance" : "luminosity",
-          "value" : "tinted"
-        }
-      ],
-      "filename" : "Logo Transparent.png",
-      "idiom" : "universal",
-      "scale" : "1x"
+      "filename": "Logo Dark.png",
+      "idiom": "universal",
+      "scale": "1x"
     }
   ],
-  "info" : {
-    "author" : "xcode",
-    "version" : 1
+  "info": {
+    "author": "xcode",
+    "version": 1
   },
-  "properties" : {
-    "preserves-vector-representation" : false
+  "properties": {
+    "preserves-vector-representation": false
   }
 }

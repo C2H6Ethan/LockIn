@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BB0000000000000000000011 /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000010 /* LockInCore */; };
+		BB0000000000000000000013 /* LockInPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000012 /* LockInPlatform */; };
+		BB0000000000000000000015 /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000014 /* LockInCore */; };
+		BB0000000000000000000017 /* LockInPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000016 /* LockInPlatform */; };
+		BB0000000000000000000019 /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000018 /* LockInCore */; };
+		BB000000000000000000001B /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB000000000000000000001A /* LockInCore */; };
+		BB000000000000000000001D /* LockInPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = BB000000000000000000001C /* LockInPlatform */; };
+		BB000000000000000000001F /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB000000000000000000001E /* LockInCore */; };
 		AAA4C04B2F62B188000D9D5D /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAA4C04A2F62B188000D9D5D /* HealthKit.framework */; };
 		AAA4C05E2F6304CA000D9D5D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAA4C05D2F6304CA000D9D5D /* WidgetKit.framework */; };
 		AAA4C0602F6304CA000D9D5D /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAA4C05F2F6304CA000D9D5D /* SwiftUI.framework */; };
@@ -93,39 +101,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		AA01FAB22F616082003F0C3D /* Exceptions for "LockIn" folder in "DeviceActivityMonitor" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Constants.swift,
-				"Extensions/Date+Helpers.swift",
-				Models/StreakData.swift,
-				Models/Task.swift,
-				Services/SharedStore.swift,
-			);
-			target = AAE22A8A2F5E088700C261A9 /* DeviceActivityMonitor */;
-		};
-		AA01FAB32F616082003F0C3D /* Exceptions for "LockIn" folder in "ShieldConfiguration" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Constants.swift,
-				"Extensions/Date+Helpers.swift",
-				Models/StreakData.swift,
-				Models/Task.swift,
-				Services/SharedStore.swift,
-			);
-			target = AAE22A9F2F5E08A000C261A9 /* ShieldConfiguration */;
-		};
-		AA01FAB42F616082003F0C3D /* Exceptions for "LockIn" folder in "ShieldAction" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Constants.swift,
-				"Extensions/Date+Helpers.swift",
-				Models/StreakData.swift,
-				Models/Task.swift,
-				Services/SharedStore.swift,
-			);
-			target = AAE22AB42F5E08B400C261A9 /* ShieldAction */;
-		};
 		AAA4C0452F6297BD000D9D5D /* Exceptions for "LockIn" folder in "LockIn" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -137,19 +112,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-			);
-			target = AAA4C05B2F6304CA000D9D5D /* LockInWidgetExtension */;
-		};
-		AAA4C0762F630617000D9D5D /* Exceptions for "LockIn" folder in "LockInWidgetExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Constants.swift,
-				DesignSystem.swift,
-				"Extensions/Date+Helpers.swift",
-				Models/StreakData.swift,
-				Models/Task.swift,
-				Services/SharedStore.swift,
-				Services/WidgetEntryBuilder.swift,
 			);
 			target = AAA4C05B2F6304CA000D9D5D /* LockInWidgetExtension */;
 		};
@@ -194,10 +156,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				AAA4C0452F6297BD000D9D5D /* Exceptions for "LockIn" folder in "LockIn" target */,
-				AA01FAB22F616082003F0C3D /* Exceptions for "LockIn" folder in "DeviceActivityMonitor" target */,
-				AA01FAB32F616082003F0C3D /* Exceptions for "LockIn" folder in "ShieldConfiguration" target */,
-				AA01FAB42F616082003F0C3D /* Exceptions for "LockIn" folder in "ShieldAction" target */,
-				AAA4C0762F630617000D9D5D /* Exceptions for "LockIn" folder in "LockInWidgetExtension" target */,
 			);
 			path = LockIn;
 			sourceTree = "<group>";
@@ -240,6 +198,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB000000000000000000001F /* LockInCore in Frameworks */,
 				AAA4C0602F6304CA000D9D5D /* SwiftUI.framework in Frameworks */,
 				AAA4C05E2F6304CA000D9D5D /* WidgetKit.framework in Frameworks */,
 			);
@@ -249,6 +208,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB0000000000000000000013 /* LockInPlatform in Frameworks */,
+				BB0000000000000000000011 /* LockInCore in Frameworks */,
 				AAA4C04B2F62B188000D9D5D /* HealthKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -257,6 +218,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB0000000000000000000017 /* LockInPlatform in Frameworks */,
+				BB0000000000000000000015 /* LockInCore in Frameworks */,
 				AAE22A8E2F5E088800C261A9 /* DeviceActivity.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -265,6 +228,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB0000000000000000000019 /* LockInCore in Frameworks */,
 				AAE22AA22F5E08A000C261A9 /* ManagedSettings.framework in Frameworks */,
 				AAE22AA42F5E08A000C261A9 /* ManagedSettingsUI.framework in Frameworks */,
 			);
@@ -274,6 +238,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB000000000000000000001D /* LockInPlatform in Frameworks */,
+				BB000000000000000000001B /* LockInCore in Frameworks */,
 				AAE22AB62F5E08B400C261A9 /* ManagedSettings.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -366,6 +332,7 @@
 			);
 			name = LockInWidgetExtension;
 			packageProductDependencies = (
+				BB000000000000000000001E /* LockInCore */,
 			);
 			productName = LockInWidgetExtension;
 			productReference = AAA4C05C2F6304CA000D9D5D /* LockInWidgetExtension.appex */;
@@ -393,6 +360,8 @@
 			);
 			name = LockIn;
 			packageProductDependencies = (
+				BB0000000000000000000012 /* LockInPlatform */,
+				BB0000000000000000000010 /* LockInCore */,
 			);
 			productName = LockIn;
 			productReference = AAE22A792F5E086300C261A9 /* LockIn.app */;
@@ -415,6 +384,8 @@
 			);
 			name = DeviceActivityMonitor;
 			packageProductDependencies = (
+				BB0000000000000000000016 /* LockInPlatform */,
+				BB0000000000000000000014 /* LockInCore */,
 			);
 			productName = DeviceActivityMonitor;
 			productReference = AAE22A8B2F5E088700C261A9 /* DeviceActivityMonitor.appex */;
@@ -437,6 +408,7 @@
 			);
 			name = ShieldConfiguration;
 			packageProductDependencies = (
+				BB0000000000000000000018 /* LockInCore */,
 			);
 			productName = ShieldConfiguration;
 			productReference = AAE22AA02F5E08A000C261A9 /* ShieldConfiguration.appex */;
@@ -459,6 +431,8 @@
 			);
 			name = ShieldAction;
 			packageProductDependencies = (
+				BB000000000000000000001C /* LockInPlatform */,
+				BB000000000000000000001A /* LockInCore */,
 			);
 			productName = ShieldAction;
 			productReference = AAE22AB52F5E08B400C261A9 /* ShieldAction.appex */;
@@ -504,6 +478,9 @@
 			);
 			mainGroup = AAE22A702F5E086300C261A9;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BB0000000000000000000001 /* XCLocalSwiftPackageReference \"Packages/LockIn\" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AAE22A7A2F5E086300C261A9 /* Products */;
 			projectDirPath = "";
@@ -653,7 +630,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LockIn.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LockIn";
 			};
@@ -674,7 +651,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LockIn.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LockIn";
 			};
@@ -706,7 +683,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -737,7 +714,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -891,7 +868,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -926,7 +903,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -955,7 +932,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -984,7 +961,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1013,7 +990,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1042,7 +1019,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1071,7 +1048,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1100,7 +1077,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1172,6 +1149,56 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		BB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/LockIn" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/LockIn;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BB0000000000000000000010 /* LockInCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/LockIn" */;
+			productName = LockInCore;
+		};
+		BB0000000000000000000012 /* LockInPlatform */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/LockIn" */;
+			productName = LockInPlatform;
+		};
+		BB0000000000000000000014 /* LockInCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/LockIn" */;
+			productName = LockInCore;
+		};
+		BB0000000000000000000016 /* LockInPlatform */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/LockIn" */;
+			productName = LockInPlatform;
+		};
+		BB0000000000000000000018 /* LockInCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/LockIn" */;
+			productName = LockInCore;
+		};
+		BB000000000000000000001A /* LockInCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/LockIn" */;
+			productName = LockInCore;
+		};
+		BB000000000000000000001C /* LockInPlatform */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/LockIn" */;
+			productName = LockInPlatform;
+		};
+		BB000000000000000000001E /* LockInCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/LockIn" */;
+			productName = LockInCore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = AAE22A712F5E086300C261A9 /* Project object */;
 }

@@ -8,7 +8,7 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 
 | # | Ticket | Status |
 |---|---|---|
-| 001 | [Scaffold the rewrite](001-scaffold.md) | todo |
+| 001 | [Scaffold the rewrite](001-scaffold.md) | done |
 | 002 | [Core rules: Task, Due, Today, Shield decision](002-core-rules.md) | todo |
 | 003 | [Shared store](003-shared-store.md) | todo |
 | 004 | [Blocklist and shield adapter](004-blocklist-and-shield-adapter.md) | todo |
