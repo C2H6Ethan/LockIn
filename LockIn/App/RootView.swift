@@ -1,14 +1,16 @@
-import FamilyControls
 import LockInCore
+import LockInPlatform
 import SwiftUI
 
 /// Top-level navigation.
 struct RootView: View {
     let environment: AppEnvironment
-    @State private var showsBlocklist = false
     @State private var formTask: FormTarget?
-    @State private var todayReload = 0
+    @State private var dataVersion = 0
     @State private var recap: RecapModel?
+    @State private var path: [Route] = []
+
+    private enum Route: Hashable { case settings }
     @Environment(\.scenePhase) private var scenePhase
 
     /// What the Task form is open for.
@@ -24,13 +26,13 @@ struct RootView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             TodayView(
                 model: TodayModel(store: environment.store, onChange: environment.stateDidChange),
                 onAddTask: { formTask = .new },
                 onEditTask: { formTask = .edit($0) }
             )
-                .id(todayReload)
+                .id(dataVersion)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button { formTask = .new } label: {
@@ -38,45 +40,55 @@ struct RootView: View {
                         }
                         .accessibilityLabel("Add Task")
                     }
-                    // Temporary until Settings (011) and Onboarding (012).
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Menu {
-                            Button("Allow Screen Time") {
-                                Task { try? await AuthorizationCenter.shared.requestAuthorization(for: .individual) }
-                            }
-                            Button("Blocklist") { showsBlocklist = true }
-                            NavigationLink("Event log") { EventLogView(store: environment.store) }
-                        } label: {
-                            Image(systemName: "ellipsis")
+                    ToolbarItem(placement: .topBarLeading) {
+                        NavigationLink(value: Route.settings) {
+                            Image(systemName: "gearshape")
                                 .foregroundStyle(DesignSystem.Colors.secondaryText)
                         }
+                        .accessibilityLabel("Settings")
+                    }
+                }
+                .navigationDestination(for: Route.self) { route in
+                    switch route {
+                    case .settings:
+                        SettingsView(
+                            model: SettingsModel(store: environment.store, onChange: environment.stateDidChange),
+                            environment: environment,
+                            onAddTask: { formTask = .new },
+                            onEditTask: { formTask = .edit($0) },
+                            dataVersion: dataVersion
+                        )
                     }
                 }
         }
         .tint(DesignSystem.Colors.accent)
         #if DEBUG
-        .onAppear { if DebugLaunch.opensNewTask { formTask = .new } }
+        .onAppear {
+            if DebugLaunch.opensNewTask { formTask = .new }
+            if DebugLaunch.opensSettings { Task { path = [.settings] } }
+        }
         #endif
         .onChange(of: scenePhase, initial: true) { _, phase in
-            // Enforcement.refresh (run by LockInApp on foreground) finalizes ended Days first.
-            if phase == .active, recap == nil { recap = RecapModel.pending(store: environment.store) }
+            guard phase == .active else { return }
+            // Launch and every return to the foreground: re-sync schedules, finalize ended Days and the
+            // Shield first, so the recap below sees yesterday's record.
+            environment.enforcement.refresh(reason: "foreground")
+            if recap == nil { recap = RecapModel.pending(store: environment.store) }
+            dataVersion += 1
         }
         .fullScreenCover(item: $recap) { model in
             RecapView(model: model) {
                 recap = nil
-                todayReload += 1
+                dataVersion += 1
             }
         }
-        .sheet(item: $formTask, onDismiss: { todayReload += 1 }) { target in
+        .sheet(item: $formTask, onDismiss: { dataVersion += 1 }) { target in
             switch target {
             case .new:
                 TaskFormView(model: TaskFormModel(editing: nil, store: environment.store, onChange: environment.stateDidChange))
             case .edit(let task):
                 TaskFormView(model: TaskFormModel(editing: task, store: environment.store, onChange: environment.stateDidChange))
             }
-        }
-        .sheet(isPresented: $showsBlocklist) {
-            BlocklistEditorView(model: BlocklistEditorModel(store: environment.store, onSave: environment.stateDidChange))
         }
     }
 }

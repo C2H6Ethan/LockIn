@@ -1,6 +1,6 @@
 # 011: Settings
 
-Status: todo
+Status: done
 Depends on: 010
 
 ## Goal
@@ -19,3 +19,9 @@ One place for everything that isn't Today.
 
 ## Tests first
 - View-model tests: changing the reminder time updates the settings document and `desiredActivities`.
+
+## Notes
+- Also has a "Screen Time access" row showing authorization status, with a tap to request it. It's useful whenever access is revoked.
+- The event log opens with a long-press on the version label.
+- The foreground refresh moved from `LockInApp` into `RootView`, so it always runs before the recap check (records first, then the recap).
+- Debug builds: `-openSettings` pushes Settings on launch.
