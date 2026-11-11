@@ -21,6 +21,10 @@ public struct Settings: Hashable, Codable, Sendable {
         self.streakSeed = streakSeed
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case reminderTime, hasCompletedOnboarding, firstDay, streakSeed, recapAcknowledgedThrough
+    }
+
     /// Missing fields fall back to defaults so older documents keep decoding.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -29,5 +33,16 @@ public struct Settings: Hashable, Codable, Sendable {
         firstDay = try c.decodeIfPresent(DayKey.self, forKey: .firstDay)
         streakSeed = try c.decodeIfPresent(StreakSeed.self, forKey: .streakSeed)
         recapAcknowledgedThrough = try c.decodeIfPresent(DayKey.self, forKey: .recapAcknowledgedThrough)
+    }
+
+    /// `reminderTime` is always written, including as `null`, so "off" survives a round trip
+    /// instead of decoding as missing and falling back to the default.
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(reminderTime, forKey: .reminderTime)
+        try c.encode(hasCompletedOnboarding, forKey: .hasCompletedOnboarding)
+        try c.encodeIfPresent(firstDay, forKey: .firstDay)
+        try c.encodeIfPresent(streakSeed, forKey: .streakSeed)
+        try c.encodeIfPresent(recapAcknowledgedThrough, forKey: .recapAcknowledgedThrough)
     }
 }

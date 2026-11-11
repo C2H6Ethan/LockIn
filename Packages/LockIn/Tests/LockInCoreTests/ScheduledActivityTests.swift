@@ -43,3 +43,47 @@ struct ScheduledActivityTests {
         #expect(ScheduledActivity.start(time(18)).intervalStart == time(18))
     }
 }
+
+struct ReminderActivityTests {
+    let today = day("2026-11-10")
+
+    @Test func reminderActivityIsDesiredOnlyWhenTheReminderIsOn() {
+        #expect(ScheduledActivity.desired(tasks: [], reminderTime: time(20), today: today) == [.day, .reminder(time(20))])
+        #expect(ScheduledActivity.desired(tasks: [], reminderTime: nil, today: today) == [.day])
+    }
+
+    @Test func reminderAndStartTimeAtTheSameMinuteAreSeparateActivities() {
+        let desired = ScheduledActivity.desired(tasks: [task(startTime: time(20))], reminderTime: time(20), today: today)
+        #expect(desired == [.day, .start(time(20)), .reminder(time(20))])
+    }
+
+    @Test func reminderNameRoundTrips() {
+        #expect(ScheduledActivity.reminder(time(20, 15)).name == "reminder-2015")
+        #expect(ScheduledActivity(name: "reminder-2015") == .reminder(time(20, 15)))
+        #expect(ScheduledActivity.reminder(time(20, 15)).intervalStart == time(20, 15))
+    }
+}
+
+struct ReminderContentTests {
+    let cal = calendar()
+    let d = day("2026-11-10")
+
+    @Test func nothingOwedMeansNoReminder() {
+        let read = task("Read")
+        var log = CompletionLog()
+        log.set(read.id, completed: true, on: d)
+        #expect(Reminder.content(tasks: [read], completions: log, day: d, calendar: cal) == nil)
+        #expect(Reminder.content(tasks: [task("Stretch", requirement: .optional)], completions: CompletionLog(), day: d, calendar: cal) == nil)
+        #expect(Reminder.content(tasks: [], completions: CompletionLog(), day: d, calendar: cal) == nil)
+    }
+
+    @Test func oneTaskLeftIsNamed() {
+        let content = Reminder.content(tasks: [task("Read 20 pages")], completions: CompletionLog(), day: d, calendar: cal)
+        #expect(content == Reminder.Content(title: "Read 20 pages is still open", body: "Finish it to keep your streak."))
+    }
+
+    @Test func severalTasksLeftAreCounted() {
+        let content = Reminder.content(tasks: [task("A"), task("B"), task("C", requirement: .optional)], completions: CompletionLog(), day: d, calendar: cal)
+        #expect(content == Reminder.Content(title: "2 tasks left today", body: "Finish them to keep your streak."))
+    }
+}

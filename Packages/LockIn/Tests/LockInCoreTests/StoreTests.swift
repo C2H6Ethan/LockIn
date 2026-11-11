@@ -73,6 +73,12 @@ struct StoreTests {
         #expect(!saved.isCompleted(id, on: today.adding(days: -120, in: calendar())))
     }
 
+    @Test func reminderOffSurvivesARoundTrip() {
+        let store = LockInStore(storage: InMemoryStorage())
+        store.write(Settings(reminderTime: nil), to: .settings)
+        #expect(store.read(.settings).reminderTime == nil)
+    }
+
     @Test func settingsDecodeWithMissingFieldsForForwardCompatibility() throws {
         let decoded = try JSONDecoder().decode(Settings.self, from: Data("{}".utf8))
         #expect(decoded == Settings())

@@ -17,7 +17,7 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 | 007 | [Task form](007-task-form.md) | done |
 | 008 | [Day records and Streak](008-day-records-and-streak.md) | done |
 | 009 | [Missed-Day Recap](009-missed-day-recap.md) | done |
-| 010 | [Reminder](010-reminder.md) | todo |
+| 010 | [Reminder](010-reminder.md) | done (device spike pending) |
 | 011 | [Settings](011-settings.md) | todo |
 | 012 | [Onboarding](012-onboarding.md) | todo |
 | 013 | [Shield appearance and action](013-shield-appearance-and-action.md) | todo |

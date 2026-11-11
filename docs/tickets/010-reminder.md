@@ -1,6 +1,6 @@
 # 010: Reminder
 
-Status: todo
+Status: done (device spike pending)
 Depends on: 008
 
 ## Goal
@@ -24,3 +24,9 @@ Required Task, Due
 
 ## Tests first
 - The core function `reminderContent(tasks:, completions:, day:) -> String?` returns nil when nothing is owed, and the correct count otherwise.
+
+## Notes
+- Built on the primary path: a `reminder-HHmm` activity, and the DeviceActivityMonitor extension posts through `UNUserNotificationCenter` when Tasks are owed. v2's ShieldAction extension already posted notifications the same way, which is good evidence it works. The device checklist above confirms it.
+- Copy: one Task left is "{title} is still open" / "Finish it to keep your streak."; several is "N tasks left today" / "Finish them to keep your streak."
+- The reminder setting UI is in 011, and the notification permission request is in 012.
+- Bug caught by the tests: `reminderTime = nil` (Off) wasn't encoded, so it decoded back as the 20:00 default. `Settings` now always writes the field.

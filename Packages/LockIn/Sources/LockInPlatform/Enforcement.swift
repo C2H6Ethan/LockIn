@@ -9,13 +9,18 @@ public struct Enforcement {
     private let store: LockInStore
     private let registrar: ScheduleRegistrar
     private let enforcer: ShieldEnforcer
+    private let poster: NotificationPoster
     private let calendar: Calendar
     private let source: Event.Source
 
-    public init(store: LockInStore, registrar: ScheduleRegistrar, enforcer: ShieldEnforcer, calendar: Calendar = .current, source: Event.Source) {
+    public static let reminderNotificationID = "reminder"
+    public static let todayURL = URL(string: "lockin://today")!
+
+    public init(store: LockInStore, registrar: ScheduleRegistrar, enforcer: ShieldEnforcer, poster: NotificationPoster = UserNotificationPoster(), calendar: Calendar = .current, source: Event.Source) {
         self.store = store
         self.registrar = registrar
         self.enforcer = enforcer
+        self.poster = poster
         self.calendar = calendar
         self.source = source
     }
@@ -38,10 +43,32 @@ public struct Enforcement {
     public func refresh(reason: String, now: Date = Date()) {
         let today = DayKey(now, calendar: calendar)
         finalizeEndedDays(today: today, now: now)
-        let report = registrar.sync(desired: ScheduledActivity.desired(tasks: store.read(.tasks), today: today))
+        let desired = ScheduledActivity.desired(tasks: store.read(.tasks), reminderTime: store.read(.settings).reminderTime, today: today)
+        let report = registrar.sync(desired: desired)
         if let summary = report.summary { store.log(summary, source: source, at: now) }
         let shielded = enforcer.reevaluate(now: now)
         store.log("\(reason): shield \(shielded ? "up" : "down")", source: source, at: now)
+    }
+
+    /// Called by the DeviceActivityMonitor extension when an activity's interval starts.
+    public func intervalDidStart(activityName: String, now: Date = Date()) {
+        refresh(reason: "intervalDidStart \(activityName)", now: now)
+        if case .reminder = ScheduledActivity(name: activityName) { postReminderIfOwed(now: now) }
+    }
+
+    private func postReminderIfOwed(now: Date) {
+        let content = Reminder.content(
+            tasks: store.read(.tasks),
+            completions: store.read(.completions),
+            day: DayKey(now, calendar: calendar),
+            calendar: calendar
+        )
+        guard let content else {
+            store.log("Reminder skipped: nothing owed", source: source, at: now)
+            return
+        }
+        poster.post(id: Self.reminderNotificationID, title: content.title, body: content.body, deepLink: Self.todayURL)
+        store.log("Reminder posted: \(content.title)", source: source, at: now)
     }
 
     /// Writes a Day record for every Day that has ended (008). The first writer wins, so the extension's

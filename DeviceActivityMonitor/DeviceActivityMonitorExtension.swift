@@ -6,6 +6,6 @@ import LockInPlatform
 final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
-        Enforcement.live(source: .monitor)?.refresh(reason: "intervalDidStart \(activity.rawValue)")
+        Enforcement.live(source: .monitor)?.intervalDidStart(activityName: activity.rawValue)
     }
 }

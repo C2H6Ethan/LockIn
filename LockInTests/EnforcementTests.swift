@@ -24,10 +24,10 @@ struct EnforcementTests {
             source: .monitor
         ).refresh(reason: "intervalDidStart start-1800", now: now)
 
-        #expect(Set(center.registered.keys) == ["day", "start-1800"])
+        #expect(Set(center.registered.keys) == ["day", "reminder-2000", "start-1800"])
         #expect(target.applicationCategories != nil)
         #expect(store.read(.eventLog).events.map(\.message) == [
-            "Schedules: started day, start-1800",
+            "Schedules: started day, reminder-2000, start-1800",
             "intervalDidStart start-1800: shield up",
         ])
     }
