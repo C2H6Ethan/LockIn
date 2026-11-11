@@ -29,6 +29,10 @@ public struct Enforcement {
     public static func live(source: Event.Source) -> Enforcement? {
         guard let storage = UserDefaultsStorage.appGroup() else { return nil }
         let store = LockInStore.logging(storage: storage, source: source)
+        // Whichever process runs first after the update imports v2, so the user needn't open the app.
+        if let v2 = UserDefaults(suiteName: AppGroup.id) {
+            V2Migration.runIfNeeded(store: store, v2: v2)
+        }
         return Enforcement(
             store: store,
             registrar: ScheduleRegistrar(),

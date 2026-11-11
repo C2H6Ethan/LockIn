@@ -10,6 +10,8 @@ public protocol ShieldTarget: AnyObject {
     var webDomainCategories: ShieldSettings.ActivityCategoryPolicy<WebDomain>? { get set }
     var blockedByFilter: WebContentSettings.FilterPolicy? { get set }
     func clearAll()
+    /// Empties stores written by older versions (v2 used the default store), so their shields can't linger.
+    func clearLegacyStores()
 }
 
 /// The only code in LockIn that touches ManagedSettings. The app and every extension use it.
@@ -44,6 +46,7 @@ public struct ShieldApplier {
 
     /// Applies or clears in one call, the shape every caller needs after asking `ShieldDecision`.
     public func update(shielded: Bool, blocklist: Blocklist) {
+        target.clearLegacyStores()
         if shielded { apply(blocklist) } else { clear() }
     }
 }
@@ -82,6 +85,10 @@ public final class ManagedSettingsShieldTarget: ShieldTarget {
 
     public func clearAll() {
         store.clearAllSettings()
+    }
+
+    public func clearLegacyStores() {
+        ManagedSettingsStore().clearAllSettings()
     }
 }
 

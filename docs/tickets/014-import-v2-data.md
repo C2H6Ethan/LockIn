@@ -1,6 +1,6 @@
 # 014: Import v2 data
 
-Status: todo
+Status: done (device check pending)
 Depends on: 012
 
 ## Goal
@@ -25,3 +25,14 @@ Existing users keep their Tasks, Streak and Blocklist when updating. If anything
 - A Start Time of 23:50 becomes 23:30.
 - Corrupt `tasks` leads to no import and onboarding.
 - The import runs only once.
+
+## Notes
+- Pure mapping in `LockInCore/Import/V2Import.swift`; reading v2 defaults and writing v3 in `LockInPlatform/V2Migration.swift`.
+- Runs from `Enforcement.live`, so whichever process starts first after the update (app or monitor extension) imports. The user doesn't have to open the app (ADR 0001).
+- Triggers when `v3.schemaVersion` is absent and v2 left `tasks` or `hasCompletedOnboarding`. `schemaVersion` is written on every outcome, including failure, so a broken import is never retried over v3 data.
+- One-time Tasks: dropped if v2 shows them completed; otherwise due today (v2 showed them from their start date until done).
+- Only today's completions are imported. Earlier history isn't needed, because the Streak continues via the seed.
+- Streak seed: v2's `currentStreak` continues if `lastCompletedDate` is yesterday. If it's today, the seed is `currentStreak - 1` as of yesterday, and today's imported completions keep today. Anything older means the Streak was already broken.
+- An unreadable `selectedApps` keeps the Tasks and leaves the apps to be re-picked (logged).
+- **Found while doing this:** v2 shielded through the *default* ManagedSettings store. `ShieldApplier.update` now empties that legacy store on every call, otherwise v2's shields could stay up forever after the update.
+- Step targets and locations are kept in `v3.v2Leftovers` for 016/017.

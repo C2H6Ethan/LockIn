@@ -62,6 +62,14 @@ struct ShieldApplierTests {
         #expect(target.blockedByFilter == nil)
     }
 
+    @Test func everyUpdateEmptiesLegacyStores() throws {
+        let target = FakeShieldTarget()
+        let applier = ShieldApplier(target: target)
+        applier.update(shielded: true, blocklist: try Fixtures.blocklist(apps: 1))
+        applier.update(shielded: false, blocklist: try Fixtures.blocklist(apps: 1))
+        #expect(target.legacyClearCount == 2)
+    }
+
     @Test func blocklistRoundTripsThroughTheStore() throws {
         let store = LockInStore(storage: InMemoryStorage())
         let blocklist = try Fixtures.blocklist(apps: 1, categories: 1, webDomains: 1, customDomains: ["reddit.com"])
@@ -88,6 +96,9 @@ final class FakeShieldTarget: ShieldTarget {
         webDomainCategories = nil
         blockedByFilter = nil
     }
+
+    var legacyClearCount = 0
+    func clearLegacyStores() { legacyClearCount += 1 }
 }
 
 enum Fixtures {
