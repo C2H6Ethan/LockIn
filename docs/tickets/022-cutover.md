@@ -12,3 +12,28 @@ Depends on: 001–021
 - Merge `rewrite` into `main`.
 - Delete the retired v2 plan (`../.claude/plan/lockin-app.md`) and archive notes.
 - Open a follow-up to remove the v2 import and old keys one release later.
+
+## Device checklist (all pending checks from 001–020, in the order to run them)
+
+Setup: Xcode → run the `LockIn` scheme on your iPhone. Check outcomes in Settings → long-press the version label → event log.
+
+**Session 1: upgrade path (do this first, before anything else touches the App Group)**
+- [ ] 014: With v2 (from `main`) installed and set up, install `rewrite` over it. Tasks, Blocklist and Streak are intact, and the Shield works without re-picking apps. v2's old shield must not linger: shields drop as soon as the Required Tasks are done.
+
+**Session 2: one sitting, about 20 minutes**
+- [ ] 001: The app installs and launches. Onboarding (012) asks for Screen Time access and notifications.
+- [ ] 004: A category-only Blocklist gets shielded, then cleared. Same for an app plus a website.
+- [ ] 013: The Shield shows LockIn copy for an app, a category and a website. "Earn access" delivers a notification that opens the walk screen.
+- [ ] 006: Completing the last Required Task removes the Shield within a second.
+- [ ] 015: Walk 100 steps, and the Shield lifts. Force-quit; after 15 minutes the Shield is back and "Bypass over." arrives. A second Bypass costs 200 steps.
+- [ ] 017: Create a Location Task. The place picker search works, and tapping the map moves the pin. Tapping the Task away from the place says "Not at … yet today."
+- [ ] 020: Add the small and medium widgets. They match Today, and completing a Task updates them.
+- [ ] 005: Deleting the only Task with a given Start Time removes its activity (event log: "stopped start-…").
+
+**Session 3: background, over several days, without opening the app**
+- [ ] 005: The Shield goes up at midnight and at a Start Time, with the app force-quit, on 3 consecutive days. Also after a reboot.
+- [ ] 010: With Tasks undone, the reminder arrives each day. With everything done, it doesn't.
+- [ ] 016: With the app force-quit, walking past a step goal completes the Task and drops the Shield. The lag can be long while the phone is locked.
+- [ ] 017: Visit the place with the app closed, then tap the Task later the same Day, and it completes.
+
+If the 010 check fails (no reminder from the extension), use the fallback described in ticket 010.
