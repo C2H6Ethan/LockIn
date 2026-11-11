@@ -63,6 +63,22 @@ public struct Enforcement {
         return shielded
     }
 
+    /// Completes Step-Goal Tasks whose target `steps` (today's total) has reached, then re-evaluates.
+    /// Returns whether anything was completed.
+    @discardableResult
+    public func recordSteps(_ steps: Int, now: Date = Date()) -> Bool {
+        let day = DayKey(now, calendar: calendar)
+        var log = store.read(.completions)
+        let reached = StepGoal.completions(tasks: store.read(.tasks), stepsToday: steps, day: day, calendar: calendar)
+            .filter { !log.isCompleted($0, on: day) }
+        guard !reached.isEmpty else { return false }
+        for id in reached { log.set(id, completed: true, on: day) }
+        store.saveCompletions(log, today: day, calendar: calendar)
+        store.log("Steps \(steps): completed \(reached.count) step goal(s)", source: source, at: now)
+        refresh(reason: "steps", now: now)
+        return true
+    }
+
     /// Starts a Bypass window now (the walk is verified by the caller) and lifts the Shield.
     @discardableResult
     public func startBypass(now: Date = Date()) -> Bypass {

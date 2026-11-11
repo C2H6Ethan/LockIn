@@ -1,6 +1,6 @@
 # 016: Step-Goal Tasks
 
-Status: todo
+Status: done (device check pending)
 Depends on: 007
 
 ## Goal
@@ -23,3 +23,13 @@ Step-Goal Task
 
 ## Tests first
 - The core function `stepGoalCompletions(tasks:, stepsToday:) -> Set<TaskID>`.
+
+## Notes
+- `LockInTask.kind` (`.standard` / `.stepGoal(target:)`) decodes as `.standard` when missing, so Tasks saved by earlier v3 builds still load.
+- Core: `StepGoal.completions`, `LockInTask.canCompleteManually`, and `TaskDraft.stepTarget` (100–100,000).
+- `Enforcement.recordSteps(_:)` only ever adds completions (steps only rise during a Day), then re-evaluates the Shield.
+- `StepGoalObserver` registers in `didFinishLaunching` when a Step-Goal Task exists, so HealthKit background launches re-attach it. The first Step-Goal Task requests access and checks today's steps right away.
+- `AppDelegate` now owns `AppEnvironment` (it's needed in `didFinishLaunching`).
+- Entitlement `com.apple.developer.healthkit.background-delivery` added.
+- v2 `stepTarget`s now import straight into `.stepGoal`.
+- Widget reload is left to 020.

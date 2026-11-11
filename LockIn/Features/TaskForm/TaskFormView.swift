@@ -21,6 +21,7 @@ struct TaskFormView: View {
                     requiredSection
                     repeatSection
                     startTimeSection
+                    stepGoalSection
 
                     if !model.draft.title.isEmpty {
                         ForEach(model.errors.filter { $0 != .emptyTitle }, id: \.self) { error in
@@ -119,6 +120,29 @@ struct TaskFormView: View {
                 .font(.footnote)
                 .foregroundStyle(DesignSystem.Colors.secondaryText)
                 .opacity(model.draft.requirement == .required ? 1 : 0)
+        }
+    }
+}
+
+extension TaskFormView {
+    var stepGoalSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+            Toggle(isOn: Binding(
+                get: { model.draft.stepTarget != nil },
+                set: { model.draft.stepTarget = $0 ? TaskFormModel.defaultStepTarget : nil }
+            )) {
+                Text("Step goal").foregroundStyle(DesignSystem.Colors.primaryText)
+            }
+            if let target = model.draft.stepTarget {
+                Picker("Steps", selection: Binding(get: { target }, set: { model.draft.stepTarget = $0 })) {
+                    ForEach(model.stepTargetChoices, id: \.self) { Text("\($0.formatted()) steps").tag($0) }
+                }
+                .pickerStyle(.menu)
+                .tint(DesignSystem.Colors.accent)
+                Text("Completes itself once Apple Health counts this many steps today. It can't be ticked off by hand.")
+                    .font(.footnote)
+                    .foregroundStyle(DesignSystem.Colors.secondaryText)
+            }
         }
     }
 }

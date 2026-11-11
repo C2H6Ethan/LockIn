@@ -73,6 +73,7 @@ struct TodayView: View {
             subtitle: model.subtitle(for: entry.task),
             isCompleted: entry.isCompleted,
             isRequired: entry.task.isRequired,
+            completesItself: !entry.task.canCompleteManually,
             onToggle: { model.toggle(entry.task.id) }
         )
         .contextMenu {
@@ -87,6 +88,8 @@ struct TaskRow: View {
     let subtitle: String?
     let isCompleted: Bool
     let isRequired: Bool
+    /// Step-Goal Tasks: shown like any Task, but tapping does nothing.
+    var completesItself = false
     let onToggle: () -> Void
 
     var body: some View {
@@ -114,7 +117,7 @@ struct TaskRow: View {
         .sensoryFeedback(.success, trigger: isCompleted) { _, new in new }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isCompleted ? .isSelected : [])
-        .accessibilityHint(isCompleted ? "Marks as not done" : "Marks as done")
+        .accessibilityHint(completesItself ? "Completes itself when you reach your steps" : isCompleted ? "Marks as not done" : "Marks as done")
     }
 
     @ViewBuilder private var marker: some View {

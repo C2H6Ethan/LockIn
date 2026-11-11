@@ -5,7 +5,7 @@ public struct TaskDraft: Equatable, Sendable {
     public enum Repeats: Equatable, Sendable { case weekly, once }
 
     public enum ValidationError: Equatable, Sendable {
-        case emptyTitle, noWeekdays, dayInPast, tooManyStartTimes
+        case emptyTitle, noWeekdays, dayInPast, tooManyStartTimes, invalidStepTarget
 
         public var message: String {
             switch self {
@@ -13,12 +13,14 @@ public struct TaskDraft: Equatable, Sendable {
             case .noWeekdays: return "Pick at least one day."
             case .dayInPast: return "Pick today or a later day."
             case .tooManyStartTimes: return "You can use up to \(TaskDraft.maxDistinctStartTimes) different start times."
+            case .invalidStepTarget: return "Pick a goal between \(TaskDraft.stepTargetRange.lowerBound) and \(TaskDraft.stepTargetRange.upperBound.formatted()) steps."
             }
         }
     }
 
     /// iOS allows about 20 DeviceActivity schedules per app; this leaves room for the day, reminder and Bypass ones.
     public static let maxDistinctStartTimes = 15
+    public static let stepTargetRange = 100...100_000
 
     public var title = ""
     public var requirement = Requirement.required
@@ -27,6 +29,8 @@ public struct TaskDraft: Equatable, Sendable {
     /// Used when `repeats == .once`. `nil` means today.
     public var onceDay: DayKey?
     public var startTime: TimeOfDay?
+    /// Non-nil makes this a Step-Goal Task.
+    public var stepTarget: Int?
 
     public init() {}
 
@@ -34,6 +38,7 @@ public struct TaskDraft: Equatable, Sendable {
         title = task.title
         requirement = task.requirement
         startTime = task.startTime
+        stepTarget = task.stepTarget
         switch task.schedule {
         case .weekly(let days):
             repeats = .weekly
@@ -52,6 +57,7 @@ public struct TaskDraft: Equatable, Sendable {
         case .once where (onceDay ?? today) < today: errors.append(.dayInPast)
         default: break
         }
+        if let stepTarget, !Self.stepTargetRange.contains(stepTarget) { errors.append(.invalidStepTarget) }
         if requirement == .required, let startTime {
             let existing = Set(otherTasks.filter(\.isRequired).compactMap(\.startTime))
             if !existing.contains(startTime), existing.count >= Self.maxDistinctStartTimes {
@@ -66,13 +72,15 @@ public struct TaskDraft: Equatable, Sendable {
         guard validate(otherTasks: otherTasks, today: today).isEmpty else { return nil }
         let schedule: Schedule = repeats == .weekly ? .weekly(weekdays) : .once(onceDay ?? today)
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let kind: LockInTask.Kind = stepTarget.map { .stepGoal(target: $0) } ?? .standard
         if var task = existing {
             task.title = cleanTitle
             task.schedule = schedule
             task.requirement = requirement
             task.startTime = startTime
+            task.kind = kind
             return task
         }
-        return LockInTask(title: cleanTitle, schedule: schedule, requirement: requirement, startTime: startTime, createdOn: today)
+        return LockInTask(title: cleanTitle, schedule: schedule, requirement: requirement, startTime: startTime, createdOn: today, kind: kind)
     }
 }

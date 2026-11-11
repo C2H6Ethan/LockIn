@@ -27,7 +27,7 @@ public struct V2Snapshot: Sendable {
     public var isPresent: Bool { tasks != nil || hasCompletedOnboarding }
 }
 
-/// v2 data that later tickets (016 Step-Goal, 017 Location) turn into Task kinds.
+/// v2 data that a later ticket (017 Location) turns into a Task kind.
 public struct V2Leftovers: Hashable, Codable, Sendable {
     public struct Place: Hashable, Codable, Sendable {
         public let name: String
@@ -35,7 +35,6 @@ public struct V2Leftovers: Hashable, Codable, Sendable {
         public let longitude: Double
     }
 
-    public var stepTargets: [LockInTask.ID: Int] = [:]
     public var locations: [LockInTask.ID: Place] = [:]
 
     public init() {}
@@ -66,9 +65,9 @@ public enum V2Import {
         for old in v2Tasks {
             guard let schedule = schedule(for: old, log: v2Log, today: today) else { continue }
             let start = old.blockingStartTime.map { TimeOfDay.nearestAllowed(hour: $0.hour ?? 0, minute: $0.minute ?? 0) }
+            let kind: LockInTask.Kind = old.stepTarget.map { .stepGoal(target: $0) } ?? .standard
             tasks.append(LockInTask(id: old.id, title: old.title, schedule: schedule,
-                                    requirement: old.blocksApps ? .required : .optional, startTime: start, createdOn: today))
-            if let target = old.stepTarget { leftovers.stepTargets[old.id] = target }
+                                    requirement: old.blocksApps ? .required : .optional, startTime: start, createdOn: today, kind: kind))
             if let place = old.location {
                 leftovers.locations[old.id] = .init(name: place.name, latitude: place.latitude, longitude: place.longitude)
             }

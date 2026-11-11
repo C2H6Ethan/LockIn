@@ -27,7 +27,7 @@ final class TodayModel {
 
     func toggle(_ id: LockInTask.ID) {
         reload()
-        guard let entry = today.all.first(where: { $0.task.id == id }) else { return }
+        guard let entry = today.all.first(where: { $0.task.id == id }), entry.task.canCompleteManually else { return }
         var log = store.read(.completions)
         log.set(id, completed: !entry.isCompleted, on: today.day)
         store.saveCompletions(log, today: today.day, calendar: calendar)
@@ -55,9 +55,13 @@ final class TodayModel {
     }
 
     /// "from 18:00" while a Required Task's Start Time is still ahead today.
+    /// Step goal first, then a Start Time that hasn't passed yet.
     func subtitle(for task: LockInTask) -> String? {
-        guard task.isRequired, let start = task.startTime,
-              now() < today.day.instant(at: start, in: calendar) else { return nil }
-        return "from \(start)"
+        var parts: [String] = []
+        if let target = task.stepTarget { parts.append("\(target.formatted()) steps") }
+        if task.isRequired, let start = task.startTime, now() < today.day.instant(at: start, in: calendar) {
+            parts.append("from \(start)")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }

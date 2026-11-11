@@ -8,6 +8,15 @@ final class TaskFormModel {
     static let startTimeChoices: [TimeOfDay] = stride(from: 0, through: TimeOfDay.latest.minutesSinceMidnight, by: TimeOfDay.step)
         .compactMap { TimeOfDay(minutesSinceMidnight: $0) }
 
+    static let defaultStepTarget = 8000
+    private static let stepTargetPresets = Array(stride(from: 1000, through: 30000, by: 1000))
+
+    /// Presets, plus the current value if it isn't one (e.g. imported from v2).
+    var stepTargetChoices: [Int] {
+        guard let target = draft.stepTarget, !Self.stepTargetPresets.contains(target) else { return Self.stepTargetPresets }
+        return (Self.stepTargetPresets + [target]).sorted()
+    }
+
     var draft: TaskDraft
     let existing: LockInTask?
 
