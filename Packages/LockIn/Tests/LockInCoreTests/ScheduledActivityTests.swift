@@ -1,0 +1,45 @@
+import Foundation
+import Testing
+@testable import LockInCore
+
+struct ScheduledActivityTests {
+    let today = day("2026-11-10")
+
+    @Test func alwaysIncludesTheDayActivity() {
+        #expect(ScheduledActivity.desired(tasks: [], today: today) == [.day])
+    }
+
+    @Test func addsOneActivityPerDistinctRequiredStartTime() {
+        let tasks = [
+            task("A", startTime: time(9)),
+            task("B", startTime: time(9)),
+            task("C", startTime: time(18)),
+            task("D"),
+            task("E", requirement: .optional, startTime: time(12)),
+        ]
+        #expect(ScheduledActivity.desired(tasks: tasks, today: today) == [.day, .start(time(9)), .start(time(18))])
+    }
+
+    @Test func ignoresOnceTasksInThePast() {
+        let past = task(schedule: .once(day("2026-11-09")), startTime: time(9))
+        let future = task(schedule: .once(day("2026-11-11")), startTime: time(10))
+        #expect(ScheduledActivity.desired(tasks: [past, future], today: today) == [.day, .start(time(10))])
+    }
+
+    @Test(arguments: [ScheduledActivity.day, .start(time(0)), .start(time(9, 45)), .start(time(23, 30))])
+    func nameRoundTrips(activity: ScheduledActivity) {
+        #expect(ScheduledActivity(name: activity.name) == activity)
+    }
+
+    @Test func namesAreStable() {
+        #expect(ScheduledActivity.day.name == "day")
+        #expect(ScheduledActivity.start(time(9, 45)).name == "start-0945")
+        #expect(ScheduledActivity(name: "start-0950") == nil)
+        #expect(ScheduledActivity(name: "bogus") == nil)
+    }
+
+    @Test func intervalsRunFromStartToEndOfDay() {
+        #expect(ScheduledActivity.day.intervalStart == time(0))
+        #expect(ScheduledActivity.start(time(18)).intervalStart == time(18))
+    }
+}

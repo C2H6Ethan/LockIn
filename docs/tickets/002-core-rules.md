@@ -1,6 +1,6 @@
 # 002: Core rules: Task, Due, Today, Shield decision
 
-Status: todo
+Status: done
 Depends on: 001
 
 ## Goal
