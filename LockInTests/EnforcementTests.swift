@@ -61,3 +61,19 @@ struct EnforcementDayRecordTests {
         #expect(store.read(.eventLog).events.contains { $0.message == "Finalized 2026-11-10 kept, 2026-11-11 missed" })
     }
 }
+
+@MainActor
+struct EnforcementWidgetTests {
+    final class Counter: @unchecked Sendable { var count = 0 }
+
+    @Test func everyRefreshReloadsTheWidget() {
+        let store = LockInStore(storage: InMemoryStorage())
+        let counter = Counter()
+        let e = Enforcement(store: store, registrar: ScheduleRegistrar(center: FakeActivityCenter()),
+                            enforcer: ShieldEnforcer(store: store, applier: ShieldApplier(target: FakeShieldTarget())),
+                            source: .app, reloadWidgets: { counter.count += 1 })
+        e.refresh(reason: "launch")
+        e.startBypass()
+        #expect(counter.count == 2)
+    }
+}

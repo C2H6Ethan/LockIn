@@ -1,6 +1,7 @@
 #if os(iOS)
 import Foundation
 import LockInCore
+import WidgetKit
 
 /// Brings the device in line with the stored state: schedules registered, Shield up or down, outcome logged.
 /// The app runs it after every change and on launch; the DeviceActivityMonitor extension runs it on every interval,
@@ -12,12 +13,16 @@ public struct Enforcement {
     private let poster: NotificationPoster
     private let calendar: Calendar
     private let source: Event.Source
+    private let reloadWidgets: @Sendable () -> Void
 
     public static let reminderNotificationID = "reminder"
     public static let bypassNotificationID = "bypass-over"
     public static let todayURL = URL(string: "lockin://today")!
 
-    public init(store: LockInStore, registrar: ScheduleRegistrar, enforcer: ShieldEnforcer, poster: NotificationPoster = UserNotificationPoster(), calendar: Calendar = .current, source: Event.Source) {
+    public init(store: LockInStore, registrar: ScheduleRegistrar, enforcer: ShieldEnforcer, poster: NotificationPoster = UserNotificationPoster(),
+                calendar: Calendar = .current, source: Event.Source,
+                reloadWidgets: @escaping @Sendable () -> Void = { WidgetCenter.shared.reloadAllTimelines() }) {
+        self.reloadWidgets = reloadWidgets
         self.store = store
         self.registrar = registrar
         self.enforcer = enforcer
@@ -60,6 +65,8 @@ public struct Enforcement {
         if let summary = report.summary { store.log(summary, source: source, at: now) }
         let shielded = enforcer.reevaluate(now: now)
         store.log("\(reason): shield \(shielded ? "up" : "down")", source: source, at: now)
+        // Every state change goes through here, so the widget never lags behind the Shield.
+        reloadWidgets()
         return shielded
     }
 
