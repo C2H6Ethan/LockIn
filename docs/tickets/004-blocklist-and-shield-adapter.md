@@ -1,6 +1,6 @@
 # 004: Blocklist and shield adapter
 
-Status: todo
+Status: done (device checks pending)
 Depends on: 003
 
 ## Goal
@@ -23,3 +23,8 @@ Blocklist, Shield
 
 ## Tests first
 - A mapping test through a `ShieldSettings` protocol fake: every Blocklist field lands in its ManagedSettings counterpart, and `clear()` empties every field. This is the regression test for v2's category bug.
+
+## Notes
+- `ShieldEnforcer` (in `LockInPlatform`) reads the store, asks `ShieldDecision` and applies. It's the shared entry point for the app and the extension.
+- Screen Time tokens can be built in tests by decoding any base64 payload (see `LockInTests/ShieldApplierTests.swift`). The simulator's ManagedSettings store doesn't keep values, so the real store is only checkable on device.
+- The debug home screen (`LockInApp.swift`) is temporary until 006.

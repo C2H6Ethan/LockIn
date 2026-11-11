@@ -8,10 +8,10 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 
 | # | Ticket | Status |
 |---|---|---|
-| 001 | [Scaffold the rewrite](001-scaffold.md) | done |
+| 001 | [Scaffold the rewrite](001-scaffold.md) | done (device install pending) |
 | 002 | [Core rules: Task, Due, Today, Shield decision](002-core-rules.md) | done |
 | 003 | [Shared store](003-shared-store.md) | done |
-| 004 | [Blocklist and shield adapter](004-blocklist-and-shield-adapter.md) | todo |
+| 004 | [Blocklist and shield adapter](004-blocklist-and-shield-adapter.md) | done (device checks pending) |
 | 005 | [Background enforcement](005-background-enforcement.md) | todo |
 | 006 | [Today screen](006-today-screen.md) | todo |
 | 007 | [Task form](007-task-form.md) | todo |
