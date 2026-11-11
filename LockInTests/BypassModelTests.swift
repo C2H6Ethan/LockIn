@@ -88,6 +88,6 @@ struct BypassModelTests {
         counter.isAvailable = false
         let m = model(counter: counter)
         m.appear()
-        #expect(m.state == .motionDenied)
+        #expect(m.state == .unavailable)
     }
 }

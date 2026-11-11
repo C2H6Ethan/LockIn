@@ -34,6 +34,17 @@ struct AppEnvironment {
         places.sync(tasks: tasks)
     }
 
+    /// Asks HealthKit for today's steps now, instead of waiting for background delivery (at most hourly,
+    /// never while locked, never after a force-quit). `onCompleted` runs on the main actor if a
+    /// Step-Goal Task was completed.
+    func refreshSteps(onCompleted: @escaping @MainActor @Sendable () -> Void = {}) {
+        guard StepGoal.isInUse(store.read(.tasks)) else { return }
+        steps.stepsToday { total in
+            guard let total, Enforcement.live(source: .app)?.recordSteps(total) == true else { return }
+            Task { @MainActor in onCompleted() }
+        }
+    }
+
     /// Re-applies everything that depends on Tasks, the Blocklist or settings. Call after every change.
     func stateDidChange() {
         enforcement.refresh(reason: "state changed")

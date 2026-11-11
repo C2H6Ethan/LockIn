@@ -152,7 +152,7 @@ extension TaskFormView {
                 }
                 .pickerStyle(.menu)
                 .tint(DesignSystem.Colors.accent)
-                Text("Completes itself once Apple Health counts this many steps today. It can't be ticked off by hand.")
+                Text("Completes itself once Apple Health counts this many steps today. It can't be ticked off by hand. Not counting? In the Health app, tap your profile → Apps → Lock In and allow Steps.")
                     .font(.footnote)
                     .foregroundStyle(DesignSystem.Colors.secondaryText)
             }

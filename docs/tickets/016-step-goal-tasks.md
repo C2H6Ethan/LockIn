@@ -19,7 +19,8 @@ Step-Goal Task
 - HealthKit data is unavailable while the device is locked, so delivery can lag until unlock. That's acceptable.
 
 ## Acceptance criteria (device)
-- [ ] With the app force-quit, walking past the target completes the Task and drops the Shield.
+- [ ] Without force-quitting, walking past the target completes the Task and drops the Shield in the background within about an hour (iOS delivers steps at most hourly, and not while locked).
+- [ ] After a force-quit, nothing happens in the background (iOS blocks it), but opening LockIn completes the Task and drops the Shield right away.
 
 ## Tests first
 - The core function `stepGoalCompletions(tasks:, stepsToday:) -> Set<TaskID>`.
@@ -33,3 +34,4 @@ Step-Goal Task
 - Entitlement `com.apple.developer.healthkit.background-delivery` added.
 - v2 `stepTarget`s now import straight into `.stepGoal`.
 - Widget reload is left to 020.
+- Step research (follow-up): background delivery for `stepCount` is at most hourly even with `.immediate`. HealthKit is unreadable while the device is locked, and a force-quit app isn't relaunched in the background. So the app also re-reads today's steps on every foreground and on first unlock (`AppEnvironment.refreshSteps`). `HKStatisticsQuery` `.cumulativeSum` already merges iPhone and Watch without double-counting.

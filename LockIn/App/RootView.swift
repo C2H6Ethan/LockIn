@@ -99,6 +99,11 @@ struct RootView: View {
             environment.enforcement.refresh(reason: "foreground")
             if recap == nil { recap = RecapModel.pending(store: environment.store) }
             dataVersion += 1
+            environment.refreshSteps { dataVersion += 1 }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)) { _ in
+            // HealthKit is unreadable while locked; the first unlock is the earliest moment to catch up.
+            environment.refreshSteps { dataVersion += 1 }
         }
         .onChange(of: router.pending, initial: true) { _, link in
             // `initial` covers a cold launch from a notification tap.

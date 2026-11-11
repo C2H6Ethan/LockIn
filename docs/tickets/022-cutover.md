@@ -36,4 +36,11 @@ Setup: Xcode → run the `LockIn` scheme on your iPhone. Check outcomes in Setti
 - [ ] 016: With the app force-quit, walking past a step goal completes the Task and drops the Shield. The lag can be long while the phone is locked.
 - [ ] 017: Visit the place with the app closed, then tap the Task later the same Day, and it completes.
 
+**Steps (from the step-counting research)**
+- [ ] Walk screen: shaking by hand for 30 s and a drill or other vibration count little or nothing. Swinging the phone at walking pace may count; that's accepted.
+- [ ] Walk screen: walk 100 steps. Note how fast the first update and the finish come. Walk with the screen locked and the phone in a pocket, then unlock: the count jumps to the full total. Try a bag and a stroller too.
+- [ ] With Motion & Fitness turned off in Settings, the walk screen says to allow it.
+- [ ] Step-Goal Task with Low Power Mode on, or Background App Refresh off: note whether it still completes in the background. It must complete when LockIn is opened.
+- [ ] With an Apple Watch and the phone left on a desk: today's total doesn't double, and the Task completes once the Watch syncs.
+
 If the 010 check fails (no reminder from the extension), use the fallback described in ticket 010.

@@ -12,6 +12,8 @@ final class BypassModel {
         case walking(steps: Int, goal: Int)
         case active(until: Date)
         case motionDenied
+        /// This device has no step counter (e.g. some iPads).
+        case unavailable
     }
 
     private(set) var state: State = .nothingOwed
@@ -43,7 +45,7 @@ final class BypassModel {
             return
         }
         guard counter.isAvailable else {
-            state = .motionDenied
+            state = .unavailable
             return
         }
         state = .walking(steps: 0, goal: log.nextStepCost(on: DayKey(now, calendar: calendar), calendar: calendar))

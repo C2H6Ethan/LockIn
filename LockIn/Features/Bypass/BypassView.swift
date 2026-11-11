@@ -43,7 +43,7 @@ struct BypassView: View {
                     .font(.body)
                     .foregroundStyle(DesignSystem.Colors.accent)
                     .padding(.top, DesignSystem.Spacing.lg)
-                Text("Walk to lift the Shield for 15 minutes. Each Bypass today costs more.")
+                Text("Walk to lift the Shield for 15 minutes. Keep your iPhone on you: Apple Watch steps don't count here. Each Bypass today costs more.")
                     .font(.footnote)
                     .foregroundStyle(DesignSystem.Colors.secondaryText)
                     .padding(.top, DesignSystem.Spacing.sm)
@@ -52,6 +52,8 @@ struct BypassView: View {
             message("You gave in.", "Shield back at \(until.formatted(date: .omitted, time: .shortened)).")
         case .nothingOwed:
             message("Nothing to bypass.", "No Required Tasks are holding the Shield up right now.")
+        case .unavailable:
+            message("Steps unavailable.", "This device can't count steps, so it can't earn a Bypass.")
         case .motionDenied:
             message("Steps unavailable.", "Allow Motion & Fitness for Lock In in Settings → Privacy & Security to earn a Bypass.")
         }
