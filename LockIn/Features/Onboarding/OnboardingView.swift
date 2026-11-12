@@ -65,7 +65,7 @@ struct OnboardingView: View {
         _ = dataVersion
         let tasks = environment.store.read(.tasks)
         return tasks.isEmpty
-            ? "Something you'll do every day. Until your required tasks are done, your Blocklist stays blocked."
+            ? "Something you'll do every day. The apps on your Blocklist stay blocked until it's done."
             : "Added \(tasks.map(\.title).joined(separator: ", ")). Add more now or later."
     }
 

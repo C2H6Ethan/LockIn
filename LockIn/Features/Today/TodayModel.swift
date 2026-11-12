@@ -150,7 +150,7 @@ final class TodayModel {
         }
         if let place = task.place { parts.append(place.name) }
         if task.isRequired, let start = task.startTime, now() < today.day.instant(at: start, in: calendar) {
-            parts.append("from \(start)")
+            parts.append("blocks from \(start)")
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }

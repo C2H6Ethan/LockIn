@@ -123,7 +123,7 @@ struct TasksModelTests {
         #expect(m.describe(makeTask("A", .weekly([.monday, .tuesday, .wednesday, .thursday, .friday]))) == "Weekdays")
         #expect(m.describe(makeTask("A", .weekly([.saturday, .sunday]))) == "Weekends")
         #expect(m.describe(makeTask("A", .weekly([.friday, .monday, .wednesday]))) == "Mon, Wed, Fri")
-        #expect(m.describe(makeTask("A", .once(DayKey("2026-11-12")!), start: TimeOfDay(hour: 18, minute: 0))) == "Thu, Nov 12 · from 18:00")
+        #expect(m.describe(makeTask("A", .once(DayKey("2026-11-12")!), start: TimeOfDay(hour: 18, minute: 0))) == "Thu, Nov 12 · blocks from 18:00")
         #expect(m.describe(makeTask("A", .once(DayKey("2026-11-10")!))) == "Today")
         #expect(m.describe(makeTask("A", every, kind: .stepGoal(target: 8000))) == "Every day · \(8000.formatted()) steps")
         #expect(m.describe(makeTask("A", every, kind: .location(Place(name: "Gym", latitude: 0, longitude: 0)))) == "Every day · Gym")

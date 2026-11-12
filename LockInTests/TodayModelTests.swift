@@ -60,7 +60,7 @@ struct TodayModelTests {
     @Test func subtitleShowsOnlyFutureStartTimes() {
         let store = LockInStore(storage: InMemoryStorage())
         let model = TodayModel(store: store, calendar: calendar, now: { at(10, 12) }, onChange: {})
-        #expect(model.subtitle(for: makeTask("Gym", start: TimeOfDay(hour: 18, minute: 0))) == "from 18:00")
+        #expect(model.subtitle(for: makeTask("Gym", start: TimeOfDay(hour: 18, minute: 0))) == "blocks from 18:00")
         #expect(model.subtitle(for: makeTask("Read", start: TimeOfDay(hour: 9, minute: 0))) == nil)
         #expect(model.subtitle(for: makeTask("Walk")) == nil)
         #expect(model.subtitle(for: makeTask("Stretch", .optional, start: TimeOfDay(hour: 18, minute: 0))) == nil)

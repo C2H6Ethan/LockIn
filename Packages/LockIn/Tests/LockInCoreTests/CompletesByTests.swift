@@ -15,12 +15,12 @@ struct CompletesByTests {
     }
 
     @Test func newDraftCompletesByTapping() {
-        #expect(TaskDraft().completesBy == .tapping)
+        #expect(TaskDraft().completesBy == .tickOff)
         #expect(TaskDraft().stepTarget == TaskDraft.defaultStepTarget)
     }
 
     @Test func eachChoiceMakesItsKind() {
-        #expect(draft(.tapping).makeTask(existing: nil, today: today)?.kind == .standard)
+        #expect(draft(.tickOff).makeTask(existing: nil, today: today)?.kind == .standard)
         var steps = draft(.steps)
         steps.stepTarget = 6000
         #expect(steps.makeTask(existing: nil, today: today)?.kind == .stepGoal(target: 6000))
@@ -31,7 +31,7 @@ struct CompletesByTests {
 
     @Test func valuesOfTheOtherChoicesAreIgnored() {
         // Switching back to Tapping after picking a place and a target leaves a plain Task, not an invalid one.
-        var d = draft(.tapping)
+        var d = draft(.tickOff)
         d.stepTarget = 5000
         d.place = gym
         #expect(d.validate(otherTasks: [], today: today).isEmpty)
@@ -58,11 +58,11 @@ struct CompletesByTests {
         #expect(TaskDraft(task: t, today: today).stepTarget == 7000)
         t.kind = .location(gym)
         #expect(TaskDraft(task: t, today: today).completesBy == .place)
-        #expect(TaskDraft(task: task("Read"), today: today).completesBy == .tapping)
+        #expect(TaskDraft(task: task("Read"), today: today).completesBy == .tickOff)
     }
 
     @Test func optionalTasksSaveWithoutAStartTime() {
-        var d = draft(.tapping)
+        var d = draft(.tickOff)
         d.requirement = .optional
         d.startTime = time(18)
         #expect(d.makeTask(existing: nil, today: today)?.startTime == nil)

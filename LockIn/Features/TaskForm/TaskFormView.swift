@@ -20,7 +20,12 @@ struct TaskFormView: View {
                             .foregroundStyle(DesignSystem.Colors.primaryText)
                             .focused($titleFocused)
                             .submitLabel(.done)
-                            .onSubmit { titleFocused = false }
+                            // A multi-line field turns Return into a newline and never calls onSubmit.
+                            .onChange(of: model.draft.title) { _, title in
+                                guard title.contains("\n") else { return }
+                                model.draft.title = title.replacingOccurrences(of: "\n", with: "")
+                                titleFocused = false
+                            }
                         if let hint = model.saveHint {
                             Text(hint)
                                 .font(.footnote)
@@ -29,12 +34,17 @@ struct TaskFormView: View {
                         }
                     }
 
-                    requiredSection
-                    repeatSection
-                    completesBySection
-                    if model.draft.requirement == .required {
-                        startTimeSection
+                    Group {
+                        requiredSection
+                        repeatSection
+                        completesBySection
+                        if model.draft.requirement == .required {
+                            startTimeSection
+                        }
                     }
+                    // Leaving the name for any other control closes the keyboard. Otherwise iOS hands focus
+                    // back to the name when a date popover or the place picker closes, and scrolls to the top.
+                    .simultaneousGesture(TapGesture().onEnded { titleFocused = false })
 
                     if let until = model.lockedUntil {
                         Label("Locked until \(until.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())). You can only make this task stricter.",
@@ -77,6 +87,12 @@ struct TaskFormView: View {
             }
             // Only a new Task opens with the keyboard; editing opens on the whole form.
             .onAppear { if !model.isEditing { titleFocused = true } }
+            .onChange(of: model.draft.requirement) { titleFocused = false }
+            .onChange(of: model.draft.repeats) { titleFocused = false }
+            .onChange(of: model.draft.weekdays) { titleFocused = false }
+            .onChange(of: model.onceDate) { titleFocused = false }
+            .onChange(of: model.draft.completesBy) { titleFocused = false }
+            .onChange(of: model.draft.startTime) { titleFocused = false }
         }
         .tint(DesignSystem.Colors.accent)
         .presentationDetents([.large])
@@ -93,8 +109,8 @@ struct TaskFormView: View {
                 Text("Required").foregroundStyle(DesignSystem.Colors.primaryText)
             }
             Text(model.draft.requirement == .required
-                 ? "Your Blocklist stays blocked until it's done."
-                 : "Tracked, but never blocks anything.")
+                 ? "The apps on your Blocklist stay blocked until this is done."
+                 : "Shows on Today, but never blocks anything.")
                 .font(.footnote)
                 .foregroundStyle(DesignSystem.Colors.secondaryText)
         }
@@ -121,36 +137,37 @@ struct TaskFormView: View {
 
     private var completesBySection: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
-            SectionLabel("Completes by")
-            Picker("Completes by", selection: Binding(
+            SectionLabel("How it's done")
+            Picker("How it's done", selection: Binding(
                 get: { model.draft.completesBy },
                 set: { choice in
                     model.draft.completesBy = choice
-                    if choice == .place, model.draft.place == nil { showsPlacePicker = true }
+                    if choice == .place, model.draft.place == nil { openPlacePicker() }
                 }
             )) {
-                Text("Tapping").tag(TaskDraft.CompletesBy.tapping)
+                Text("Tick off").tag(TaskDraft.CompletesBy.tickOff)
                 Text("Steps").tag(TaskDraft.CompletesBy.steps)
                 Text("Place").tag(TaskDraft.CompletesBy.place)
             }
             .pickerStyle(.segmented)
 
             switch model.draft.completesBy {
-            case .tapping:
-                footnote("Tick it off on Today when it's done.")
+            case .tickOff:
+                footnote("You tick it off yourself on Today.")
             case .steps:
                 Picker("Goal", selection: $model.draft.stepTarget) {
                     ForEach(model.stepTargetChoices, id: \.self) { Text("\($0.formatted()) steps").tag($0) }
                 }
                 .pickerStyle(.menu)
                 .tint(DesignSystem.Colors.accent)
-                footnote("Done by itself once Apple Health counts this many steps today. If it doesn't count: open Health, tap your profile, then Apps → Lock In, and turn on Steps.")
+                footnote("Ticks itself off when you've walked this many steps today.")
+                footnote("Steps not counting? In the Health app, tap your profile, then Apps → Lock In, and turn on Steps.")
             case .place:
-                Button { showsPlacePicker = true } label: {
+                Button { openPlacePicker() } label: {
                     Text(model.draft.place?.name ?? "Choose a place")
                         .foregroundStyle(DesignSystem.Colors.accent)
                 }
-                footnote("You can tick it off once you've been there today.")
+                footnote("You can only tick it off after you've been there today.")
             }
         }
         .sheet(isPresented: $showsPlacePicker) {
@@ -173,8 +190,15 @@ struct TaskFormView: View {
                 .pickerStyle(.wheel)
                 .frame(height: 120)
             }
-            footnote(model.draft.startTime.map { "Blocks from \($0.description) until done." } ?? "Blocks from midnight until done.")
+            footnote(model.draft.startTime.map { "Your apps are blocked from \($0.description) until this is done." }
+                     ?? "Your apps are blocked all day until this is done. Turn on to start blocking later.")
         }
+    }
+
+    /// Closes the keyboard first, so it doesn't come back on the name when the picker closes.
+    private func openPlacePicker() {
+        titleFocused = false
+        showsPlacePicker = true
     }
 
     private func footnote(_ text: String) -> some View {
@@ -194,9 +218,22 @@ struct WeekdayPicker: View {
     ]
 
     @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .body) private var dayCircle = DesignSystem.Size.dayCircle
 
     var body: some View {
-        if typeSize.isAccessibilitySize {
+        Group {
+            if typeSize.isAccessibilitySize {
+                accessibilityList
+            } else {
+                letters
+            }
+        }
+        // Same light tick as completing a task, so every toggle is felt.
+        .sensoryFeedback(.selection, trigger: selection)
+    }
+
+    private var accessibilityList: some View {
+        Group {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(order, id: \.0) { day, _, name in
                     let on = selection.contains(day)
@@ -217,8 +254,6 @@ struct WeekdayPicker: View {
                     .accessibilityAddTraits(on ? .isSelected : [])
                 }
             }
-        } else {
-            letters
         }
     }
 
@@ -231,7 +266,10 @@ struct WeekdayPicker: View {
                 } label: {
                     Text(letter)
                         .font(.body.weight(on ? .semibold : .regular))
-                        .foregroundStyle(on ? DesignSystem.Colors.accent : DesignSystem.Colors.secondaryText)
+                        .foregroundStyle(on ? DesignSystem.Colors.background : DesignSystem.Colors.secondaryText)
+                        .frame(width: dayCircle, height: dayCircle)
+                        .background(Circle().fill(on ? DesignSystem.Colors.accent : .clear))
+                        .animation(.easeOut(duration: 0.15), value: on)
                         .frame(maxWidth: .infinity, minHeight: DesignSystem.Size.hitArea)
                         .contentShape(Rectangle())
                 }

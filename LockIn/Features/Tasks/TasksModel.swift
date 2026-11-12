@@ -27,7 +27,7 @@ final class TasksModel {
     private var today: DayKey { DayKey(now(), calendar: calendar) }
 
     /// "Every day", "Weekdays", "Mon, Wed, Fri" or "Thu, Nov 12", then the kind and a Required Task's Start Time:
-    /// "Every day · 8,000 steps · from 18:00".
+    /// "Every day · 8,000 steps · blocks from 18:00".
     func describe(_ task: LockInTask) -> String {
         var parts: [String] = []
         switch task.schedule {
@@ -46,7 +46,7 @@ final class TasksModel {
         }
         if let target = task.stepTarget { parts.append("\(target.formatted()) steps") }
         if let place = task.place { parts.append(place.name) }
-        if task.isRequired, let start = task.startTime { parts.append("from \(start)") }
+        if task.isRequired, let start = task.startTime { parts.append("blocks from \(start)") }
         return parts.joined(separator: " · ")
     }
 

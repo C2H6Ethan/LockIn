@@ -5,7 +5,7 @@ public struct TaskDraft: Equatable, Sendable {
     public enum Repeats: Equatable, Sendable { case weekly, once }
 
     /// How the Task gets done (see GLOSSARY: Completes by). Maps 1:1 onto `LockInTask.Kind`.
-    public enum CompletesBy: Hashable, Sendable, CaseIterable { case tapping, steps, place }
+    public enum CompletesBy: Hashable, Sendable, CaseIterable { case tickOff, steps, place }
 
     public enum ValidationError: Equatable, Sendable {
         case emptyTitle, noWeekdays, dayInPast, tooManyStartTimes, invalidStepTarget, noPlace, tooManyPlaces
@@ -36,7 +36,7 @@ public struct TaskDraft: Equatable, Sendable {
     public var onceDay: DayKey?
     /// Only Required Tasks keep one; Optional Tasks save without it.
     public var startTime: TimeOfDay?
-    public var completesBy = CompletesBy.tapping
+    public var completesBy = CompletesBy.tickOff
     /// Used when `completesBy == .steps`; kept while switching so the choice can be undone.
     public var stepTarget = TaskDraft.defaultStepTarget
     /// Used when `completesBy == .place`.
@@ -49,7 +49,7 @@ public struct TaskDraft: Equatable, Sendable {
         requirement = task.requirement
         startTime = task.startTime
         switch task.kind {
-        case .standard: completesBy = .tapping
+        case .standard: completesBy = .tickOff
         case .stepGoal(let target):
             completesBy = .steps
             stepTarget = target
@@ -76,7 +76,7 @@ public struct TaskDraft: Equatable, Sendable {
         default: break
         }
         switch completesBy {
-        case .tapping: break
+        case .tickOff: break
         case .steps where !Self.stepTargetRange.contains(stepTarget): errors.append(.invalidStepTarget)
         case .steps: break
         case .place where place == nil: errors.append(.noPlace)
@@ -99,7 +99,7 @@ public struct TaskDraft: Equatable, Sendable {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let kind: LockInTask.Kind
         switch completesBy {
-        case .tapping: kind = .standard
+        case .tickOff: kind = .standard
         case .steps: kind = .stepGoal(target: stepTarget)
         case .place: kind = place.map { .location($0) } ?? .standard
         }

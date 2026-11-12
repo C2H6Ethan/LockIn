@@ -69,7 +69,7 @@ struct LocationTaskTests {
         var d = TaskDraft(task: gymTask, today: today)
         #expect(d.place == gym)
         #expect(d.completesBy == .place)
-        d.completesBy = .tapping
+        d.completesBy = .tickOff
         #expect(d.makeTask(existing: gymTask, today: today)?.kind == .standard)
     }
 

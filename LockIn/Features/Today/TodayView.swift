@@ -80,7 +80,7 @@ struct TodayView: View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             Text("Nothing due today.")
                 .foregroundStyle(DesignSystem.Colors.primaryText)
-            Text("Add a task. Until your required tasks are done, your Blocklist stays blocked.")
+            Text("Add a task. Each day, the apps on your Blocklist stay blocked until your required tasks are done.")
                 .font(.subheadline)
                 .foregroundStyle(DesignSystem.Colors.secondaryText)
             Button("Add task", action: onAddTask)
@@ -212,7 +212,7 @@ struct TaskRow: View {
         .accessibilityLabel([title, subtitle].compactMap { $0 }.joined(separator: ", "))
         .accessibilityValue("\(isRequired ? "Required" : "Optional"), \(isCompleted ? "done" : "not done")")
         .accessibilityAddTraits(isCompleted ? .isSelected : [])
-        .accessibilityAction(named: completesItself ? "Completes at your step goal" : isCompleted ? "Undo" : "Complete") {
+        .accessibilityAction(named: completesItself ? "Ticks itself off at your step goal" : isCompleted ? "Undo" : "Complete") {
             if !completesItself { onToggle() }
         }
         .accessibilityAction(named: "Edit", onEdit)

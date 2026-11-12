@@ -71,7 +71,7 @@ struct TaskFormModelTests {
         model.draft.title = "Gym"
         model.draft.completesBy = .place
         #expect(model.saveHint == "Pick a place.")
-        model.draft.completesBy = .tapping
+        model.draft.completesBy = .tickOff
         #expect(model.saveHint == nil)
     }
 

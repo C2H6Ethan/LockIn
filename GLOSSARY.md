@@ -34,8 +34,8 @@ The set of Tasks due on the current Day, with their completion state.
 _Avoid_: Today's tasks list, daily missions
 
 **Blocklist**:
-The apps, app categories and websites the user has chosen to be shielded.
-_Avoid_: Selection, selected apps, groups
+The apps, app categories and websites the user has chosen to be shielded. The list itself is never "blocked": on screen, say "the apps on your Blocklist stay blocked" or "your apps are blocked".
+_Avoid_: Selection, selected apps, groups; "your Blocklist stays blocked"
 
 **Shield**:
 The system block screen covering a blocked app or website while the user still owes Tasks for the Day. "Shield" is the code term (Apple's ManagedSettings name). On screen, say **blocking**: "Blocking on", "Blocks from 18:00 until done", "pause blocking".
@@ -74,9 +74,9 @@ _Avoid_: Steps task, HealthKit task
 A Task that can only be completed after the user has visited its place on that Day.
 _Avoid_: Location-verified task, geofence task
 
-**Completes by**:
-How a Task gets done, chosen once per Task: **Tapping** (the user ticks it off), **Steps** (a Step-Goal Task) or **Place** (a Location Task). Code: `LockInTask.Kind` (`.standard`, `.stepGoal`, `.location`).
-_Avoid_: Task type, mode, verification
+**How it's done**:
+How a Task gets done, chosen once per Task: **Tick off** (the user ticks it off on Today), **Steps** (a Step-Goal Task) or **Place** (a Location Task). Code: `TaskDraft.CompletesBy` (`.tickOff`, `.steps`, `.place`) and `LockInTask.Kind` (`.standard`, `.stepGoal`, `.location`).
+_Avoid_: Completes by, tapping, task type, mode, verification
 
 ## Escaping and committing
 

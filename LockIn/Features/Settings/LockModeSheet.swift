@@ -30,7 +30,7 @@ struct LockModeSheet: View {
                     .padding(.top, DesignSystem.Spacing.lg)
                 }
             }
-            Text("Turning off Screen Time access in iOS Settings can't be prevented.")
+            Text("Lock In can't stop you from turning off Screen Time access in iOS Settings.")
                 .font(.footnote)
                 .foregroundStyle(DesignSystem.Colors.secondaryText)
                 .padding(.vertical, DesignSystem.Spacing.md)

@@ -27,6 +27,8 @@ enum DesignSystem {
         static let marker: CGFloat = 14
         /// Minimum tap target (HIG).
         static let hitArea: CGFloat = 44
+        /// A selected day in the weekday picker.
+        static let dayCircle: CGFloat = 34
         /// The walk screen's live step counter.
         static let stepCounter: CGFloat = 88
     }

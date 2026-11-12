@@ -72,7 +72,7 @@ struct StepGoalDraftTests {
         var t = task("Walk")
         t.kind = .stepGoal(target: 6000)
         #expect(TaskDraft(task: t, today: today).stepTarget == 6000)
-        #expect(TaskDraft(task: task("Read"), today: today).completesBy == .tapping)
+        #expect(TaskDraft(task: task("Read"), today: today).completesBy == .tickOff)
     }
 }
 

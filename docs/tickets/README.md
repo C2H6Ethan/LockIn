@@ -31,5 +31,7 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 | 021 | [Review prompt and launch screen](021-review-prompt-and-launch-screen.md) | done |
 | 022 | [Cutover](022-cutover.md) | todo |
 | 023 | [UX restructure](023-ux-restructure.md) (lands before 022's TestFlight step) | done |
+| 024 | [Copy review](024-copy-review.md) | done (device read-through pending) |
+| 025 | [Focus and input feedback](025-focus-and-input-feedback.md) | done (device checks pending) |
 
 v2 reference: the old implementation stays readable on `main` until 022. Read it for copy and behavior details, never copy its structure.

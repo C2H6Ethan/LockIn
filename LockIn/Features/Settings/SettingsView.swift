@@ -110,7 +110,7 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                         Text("Locked until \(until.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))")
                             .foregroundStyle(DesignSystem.Colors.primaryText)
-                        Text("Only stricter changes until then.")
+                        Text("Until then, you can only make Lock In stricter.")
                             .font(.subheadline)
                             .foregroundStyle(DesignSystem.Colors.secondaryText)
                     }
