@@ -16,14 +16,26 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         return true
     }
 
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        guard let string = response.notification.request.content.userInfo["url"] as? String, let url = URL(string: string) else { return }
-        await MainActor.run { router.open(url) }
+    // Completion-handler versions on purpose: with the `async` versions, iOS calls UIKit's completion from a
+    // background thread when the method returns, and UIKit crashes ("Call must be made on main thread").
+    // So the handler is always called on the main thread here.
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                            withCompletionHandler completionHandler: @escaping () -> Void) {
+        let url = (response.notification.request.content.userInfo["url"] as? String).flatMap(URL.init(string:))
+        nonisolated(unsafe) let done = completionHandler
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated {
+                if let url { self.router.open(url) }
+            }
+            done()
+        }
     }
 
     /// Show LockIn's notifications even while the app is open.
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                            withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        nonisolated(unsafe) let done = completionHandler
+        DispatchQueue.main.async { done([.banner, .sound]) }
     }
 }
 
