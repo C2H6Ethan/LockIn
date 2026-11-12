@@ -174,7 +174,12 @@ struct TaskRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DesignSystem.Spacing.md) {
             Button(action: onToggle) {
-                marker.frame(width: markerColumn)
+                // A hidden line of body text gives the marker the title's first line: the row aligns on its
+                // baseline, and the marker is centered on that line instead of sitting on the baseline.
+                Text(verbatim: "A")
+                    .hidden()
+                    .frame(width: markerColumn)
+                    .overlay { marker }
             }
             .buttonStyle(.plain)
             // Not `.disabled`: that would dim the progress ring. `TodayModel.toggle` ignores Step-Goal Tasks.

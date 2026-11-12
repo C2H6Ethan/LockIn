@@ -24,7 +24,7 @@ enum DesignSystem {
     /// Base sizes at the default text size. Views scale them with `@ScaledMetric` so they grow with Dynamic Type.
     enum Size {
         /// Task row marker (circle or progress ring).
-        static let marker: CGFloat = 14
+        static let marker: CGFloat = 18
         /// Minimum tap target (HIG).
         static let hitArea: CGFloat = 44
         /// A selected day in the weekday picker.
