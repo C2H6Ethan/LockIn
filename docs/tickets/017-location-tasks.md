@@ -1,6 +1,6 @@
 # 017: Location Tasks
 
-Status: done (device checks pending)
+Status: done
 Depends on: 007
 
 ## Goal

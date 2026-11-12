@@ -1,6 +1,6 @@
 # 013: Shield appearance and action
 
-Status: done (device checks pending)
+Status: done
 Depends on: 005
 
 ## Goal

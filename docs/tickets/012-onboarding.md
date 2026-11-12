@@ -1,6 +1,6 @@
 # 012: Onboarding
 
-Status: done (device check pending)
+Status: done
 Depends on: 011
 
 ## Goal

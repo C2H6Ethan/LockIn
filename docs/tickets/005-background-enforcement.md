@@ -1,6 +1,6 @@
 # 005: Background enforcement
 
-Status: done (device checks pending)
+Status: done
 Depends on: 004
 
 ## Goal

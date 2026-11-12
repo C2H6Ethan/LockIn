@@ -1,6 +1,6 @@
 # 004: Blocklist and shield adapter
 
-Status: done (device checks pending)
+Status: done
 Depends on: 003
 
 ## Goal

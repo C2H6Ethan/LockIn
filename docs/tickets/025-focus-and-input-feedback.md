@@ -1,6 +1,6 @@
 # 025: Focus and input feedback
 
-Status: done (device checks pending)
+Status: done
 
 ## Goal
 The keyboard goes away when the user is done typing and never comes back by itself. Every tap on a control is clearly felt and seen.

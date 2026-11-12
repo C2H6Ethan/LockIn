@@ -1,6 +1,6 @@
 # 016: Step-Goal Tasks
 
-Status: done (device check pending)
+Status: done
 Depends on: 007
 
 ## Goal

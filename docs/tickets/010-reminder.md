@@ -1,6 +1,6 @@
 # 010: Reminder
 
-Status: done (device spike pending)
+Status: done
 Depends on: 008
 
 ## Goal

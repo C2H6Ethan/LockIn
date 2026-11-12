@@ -4,7 +4,7 @@
 
 An iOS app that keeps distracting apps and websites shielded each day until the user's Required Tasks are done. Minimalist design.
 
-LockIn is being rewritten (v3) on the `rewrite` branch. v2 stays on `main` as a reference until ticket 022.
+LockIn v3 (2.0.0) lives on `main`; the rewrite branch was merged in ticket 022. v2 is in git history before that merge.
 
 ## Before starting any session
 

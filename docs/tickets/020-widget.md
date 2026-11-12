@@ -1,6 +1,6 @@
 # 020: Widget
 
-Status: done (device check pending)
+Status: done
 Depends on: 008
 
 ## Goal

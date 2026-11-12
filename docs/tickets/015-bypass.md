@@ -1,6 +1,6 @@
 # 015: Bypass
 
-Status: done (device checks pending)
+Status: done
 Depends on: 013
 
 ## Goal

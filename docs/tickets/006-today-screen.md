@@ -1,6 +1,6 @@
 # 006: Today screen
 
-Status: done (device check pending)
+Status: done
 Depends on: 005
 
 ## Goal

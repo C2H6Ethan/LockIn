@@ -1,6 +1,6 @@
 # 024: Copy review
 
-Status: done (device read-through pending)
+Status: done
 
 ## Goal
 Every line of on-screen text says plainly what happens, in the user's words. Found on device: "Your Blocklist stays blocked until it's done." The list itself isn't blocked; the apps on it are.

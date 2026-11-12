@@ -2,7 +2,7 @@
 
 Status: todo
 
-Depends on: 023, 024 (the screens and copy being shown are final). Lands before 022's App Store release step.
+Depends on: 023, 024 (the screens and copy being shown are final). Lands before the 2.0.0 App Store release.
 
 ## Goal
 A professional store page for 2.0.0. **The main work is new screenshots**: designed marketing images (a caption, a device frame, a background in the app's style), not bare screen captures. The text is a quick side check.

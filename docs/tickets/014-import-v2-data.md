@@ -1,6 +1,6 @@
 # 014: Import v2 data
 
-Status: done (device check pending)
+Status: done
 Depends on: 012
 
 ## Goal
