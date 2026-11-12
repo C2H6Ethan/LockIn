@@ -29,7 +29,7 @@ struct StepGoalAppTests {
     @Test func stepGoalSubtitleIncludesAFutureStartTime() {
         var task = walk
         task.startTime = TimeOfDay(hour: 18, minute: 0)
-        let model = TodayModel(store: LockInStore(storage: InMemoryStorage()), calendar: calendar, now: { now }, onChange: {})
+        let model = TodayModel(store: LockInStore(storage: InMemoryStorage()), calendar: calendar, locale: Locale(identifier: "de_CH"), now: { now }, onChange: {})
         #expect(model.subtitle(for: task) == "\(8000.formatted()) steps · blocks from 18:00")
     }
 

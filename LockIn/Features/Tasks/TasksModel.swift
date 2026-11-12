@@ -11,8 +11,10 @@ final class TasksModel {
     private let store: LockInStore
     private let calendar: Calendar
     private let now: () -> Date
+    private let locale: Locale
 
-    init(store: LockInStore, calendar: Calendar = .current, now: @escaping () -> Date = Date.init) {
+    init(store: LockInStore, calendar: Calendar = .current, locale: Locale = .current, now: @escaping () -> Date = Date.init) {
+        self.locale = locale
         self.store = store
         self.calendar = calendar
         self.now = now
@@ -46,7 +48,7 @@ final class TasksModel {
         }
         if let target = task.stepTarget { parts.append("\(target.formatted()) steps") }
         if let place = task.place { parts.append(place.name) }
-        if task.isRequired, let start = task.startTime { parts.append("blocks from \(start)") }
+        if task.isRequired, let start = task.startTime { parts.append("blocks from \(start.formatted(locale: locale))") }
         return parts.joined(separator: " · ")
     }
 

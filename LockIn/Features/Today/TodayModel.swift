@@ -18,6 +18,7 @@ final class TodayModel {
     private let store: LockInStore
     private let calendar: Calendar
     private let now: () -> Date
+    private let locale: Locale
     private let locate: () async -> Coordinate?
     /// Platform inputs: Screen Time authorization and whether the Blocklist is empty.
     private let screenTimeAllowed: () -> Bool
@@ -27,13 +28,14 @@ final class TodayModel {
     private var messages: [LockInTask.ID: String] = [:]
     private(set) var checkingLocation: Set<LockInTask.ID> = []
 
-    init(store: LockInStore, calendar: Calendar = .current, now: @escaping () -> Date = Date.init,
+    init(store: LockInStore, calendar: Calendar = .current, locale: Locale = .current, now: @escaping () -> Date = Date.init,
          locate: @escaping () async -> Coordinate? = { nil },
          screenTimeAllowed: @escaping () -> Bool = { true }, blocklistIsEmpty: @escaping () -> Bool = { false },
          onChange: @escaping () -> Void) {
         self.store = store
         self.calendar = calendar
         self.now = now
+        self.locale = locale
         self.locate = locate
         self.screenTimeAllowed = screenTimeAllowed
         self.blocklistIsEmpty = blocklistIsEmpty
@@ -59,7 +61,7 @@ final class TodayModel {
         tasksOnOtherDays = tasks.filter { !$0.isDue(on: day, calendar: calendar) && !TaskList(tasks: [$0], today: day).isPast($0) }.count
     }
 
-    var statusText: ShieldStatus.Text { status.text(calendar: calendar) }
+    var statusText: ShieldStatus.Text { status.text(calendar: calendar, locale: locale) }
 
     /// Completes or un-completes a Task. Completing a Location Task may need a location fix first;
     /// the returned Task is that check, so callers (and tests) can await it.
@@ -150,7 +152,7 @@ final class TodayModel {
         }
         if let place = task.place { parts.append(place.name) }
         if task.isRequired, let start = task.startTime, now() < today.day.instant(at: start, in: calendar) {
-            parts.append("blocks from \(start)")
+            parts.append("blocks from \(start.formatted(locale: locale))")
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }

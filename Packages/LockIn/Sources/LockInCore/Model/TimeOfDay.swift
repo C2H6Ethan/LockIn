@@ -29,7 +29,25 @@ public struct TimeOfDay: Hashable, Comparable, Sendable, CustomStringConvertible
         return TimeOfDay(minutesSinceMidnight: min(rounded, latest.minutesSinceMidnight))!
     }
 
+    /// "HH:mm" for logs and identifiers. Anything the user reads goes through `formatted(locale:)`.
     public var description: String { String(format: "%02d:%02d", hour, minute) }
+
+    /// The time the way the user's locale writes it: "11:30 PM" in en_US, "23:30" in de_CH.
+    public func formatted(locale: Locale = .current) -> String {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        let date = utc.date(from: DateComponents(year: 2001, month: 1, day: 1, hour: hour, minute: minute))!
+        return Self.format(date, calendar: utc, locale: locale)
+    }
+
+    /// The clock time of `date` in `calendar`'s time zone, in `locale`'s style. Also for times that aren't quarter hours.
+    static func format(_ date: Date, calendar: Calendar, locale: Locale) -> String {
+        var style = Date.FormatStyle().hour().minute()
+        style.calendar = calendar
+        style.timeZone = calendar.timeZone
+        style.locale = locale
+        return date.formatted(style)
+    }
 
     public static func < (lhs: TimeOfDay, rhs: TimeOfDay) -> Bool {
         lhs.minutesSinceMidnight < rhs.minutesSinceMidnight

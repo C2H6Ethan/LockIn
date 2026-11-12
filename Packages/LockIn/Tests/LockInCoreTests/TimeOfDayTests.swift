@@ -25,6 +25,16 @@ struct TimeOfDayTests {
         #expect(time(18, 15).description == "18:15")
     }
 
+    @Test func formattedFollowsTheLocale() {
+        func f(_ t: TimeOfDay, _ id: String) -> String {
+            t.formatted(locale: Locale(identifier: id)).replacingOccurrences(of: "\u{202F}", with: " ")
+        }
+        #expect(f(time(23, 30), "en_US") == "11:30 PM")
+        #expect(f(time(23, 30), "de_CH") == "23:30")
+        #expect(f(time(0, 0), "en_US") == "12:00 AM")
+        #expect(f(time(9, 15), "de_CH") == "09:15")
+    }
+
     @Test func codesAsMinutes() throws {
         let data = try JSONEncoder().encode(time(18, 15))
         #expect(String(decoding: data, as: UTF8.self) == "1095")

@@ -125,6 +125,15 @@ struct RootView: View {
             if let title = DebugLaunch.editsTaskTitled,
                let task = environment.store.read(.tasks).first(where: { $0.title == title }) { formTask = .edit(task) }
             if DebugLaunch.opensBypass { showsBypass = true }
+            if let rise = DebugSeed.StepsRise(arguments: ProcessInfo.processInfo.arguments) {
+                // Same update path as a HealthKit total: record it, then let Today redraw.
+                Task {
+                    await rise.run { total in
+                        environment.enforcement.recordSteps(total)
+                        dataVersion += 1
+                    }
+                }
+            }
         }
         #endif
         .onChange(of: scenePhase, initial: true) { _, phase in
@@ -154,7 +163,7 @@ struct RootView: View {
         .fullScreenCover(isPresented: $showsBypass, onDismiss: { dataVersion += 1 }) {
             BypassView(model: BypassModel(
                 store: environment.store,
-                counter: PedometerStepCounter(),
+                counter: stepCounter,
                 startBypass: { environment.enforcement.startBypass() }
             ))
         }
@@ -172,5 +181,12 @@ struct RootView: View {
                 TaskFormView(model: TaskFormModel(editing: task, store: environment.store, onChange: environment.stateDidChange))
             }
         }
+    }
+
+    private var stepCounter: StepCounter {
+        #if DEBUG
+        if let fake = DebugSeed.stepCounter() { return fake }
+        #endif
+        return PedometerStepCounter()
     }
 }

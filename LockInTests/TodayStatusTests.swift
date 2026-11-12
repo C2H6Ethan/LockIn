@@ -101,7 +101,7 @@ struct TasksModelTests {
         LockInTask(title: title, schedule: schedule, requirement: requirement, startTime: start, createdOn: DayKey("2026-11-01")!, kind: kind)
     }
 
-    func model(_ store: LockInStore) -> TasksModel { TasksModel(store: store, calendar: calendar, now: { now }) }
+    func model(_ store: LockInStore) -> TasksModel { TasksModel(store: store, calendar: calendar, locale: Locale(identifier: "de_CH"), now: { now }) }
 
     @Test func listsAllTasksRequiredFirstIncludingOnesNotDueToday() {
         let store = LockInStore(storage: InMemoryStorage())

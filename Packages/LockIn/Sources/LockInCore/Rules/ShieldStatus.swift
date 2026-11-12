@@ -70,16 +70,15 @@ public struct ShieldStatus: Equatable, Sendable {
         /// The line asks the user to do something (accent color, tappable).
         public let isAction: Bool
 
-        public init(_ state: State, calendar: Calendar) {
+        public init(_ state: State, calendar: Calendar, locale: Locale = .current) {
             switch state {
             case .on(let left):
                 (lead, detail, isAction) = ("Blocking on", left == 1 ? "1 required task left" : "\(left) required tasks left", false)
             case .startsAt(let time, _):
-                (lead, detail, isAction) = ("Blocking from \(time)", nil, false)
+                (lead, detail, isAction) = ("Blocking from \(time.formatted(locale: locale))", nil, false)
             case .bypassed(let until, _):
-                let parts = calendar.dateComponents([.hour, .minute], from: until)
                 // A Bypass ends on any minute, so this can't go through `TimeOfDay` (quarter hours only).
-                let time = String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
+                let time = TimeOfDay.format(until, calendar: calendar, locale: locale)
                 (lead, detail, isAction) = ("Blocking resumes at \(time)", "Bypass", false)
             case .off:
                 (lead, detail, isAction) = ("Blocking off", "Day kept", false)
@@ -93,5 +92,5 @@ public struct ShieldStatus: Equatable, Sendable {
         }
     }
 
-    public func text(calendar: Calendar) -> Text { Text(state, calendar: calendar) }
+    public func text(calendar: Calendar, locale: Locale = .current) -> Text { Text(state, calendar: calendar, locale: locale) }
 }

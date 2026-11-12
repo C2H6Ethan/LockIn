@@ -35,5 +35,6 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 | 025 | [Focus and input feedback](025-focus-and-input-feedback.md) | done |
 | 026 | App Store listing: moved to the private marketing repo (`../marketing`, ticket M001); the app repo stays code-only | moved |
 | 027 | [Remove the v2 import](027-remove-v2-import.md) (the release after 2.0.0) | todo |
+| 028 | [Debug seeds for marketing Captures, and times in the user's locale](028-marketing-debug-seeds.md) (asked for by marketing M001) | done |
 
 v2 reference: the old implementation stays readable on `main` until 022. Read it for copy and behavior details, never copy its structure.

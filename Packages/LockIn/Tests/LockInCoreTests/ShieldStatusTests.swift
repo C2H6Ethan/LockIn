@@ -103,6 +103,16 @@ struct ShieldStatusTests {
 
     // MARK: Copy
 
+    @Test func timesFollowTheLocale() {
+        func lines(_ locale: Locale) -> [String] {
+            [ShieldStatus.Text(.startsAt(time(23, 30), left: 1), calendar: cal, locale: locale).lead,
+             ShieldStatus.Text(.bypassed(until: instant(today, 21, 52), left: 1), calendar: cal, locale: locale).lead]
+                .map { $0.replacingOccurrences(of: "\u{202F}", with: " ") }
+        }
+        #expect(lines(Locale(identifier: "en_US")) == ["Blocking from 11:30 PM", "Blocking resumes at 9:52 PM"])
+        #expect(lines(Locale(identifier: "de_CH")) == ["Blocking from 23:30", "Blocking resumes at 21:52"])
+    }
+
     @Test func copyForEveryState() {
         let end = instant(today, 14, 5)
         let expected: [(ShieldStatus.State, String, String?, Bool)] = [
@@ -116,7 +126,7 @@ struct ShieldStatusTests {
             (.needsBlocklist, "Nothing to block", "choose your Blocklist", true),
         ]
         for (state, lead, detail, isAction) in expected {
-            let text = ShieldStatus.Text(state, calendar: cal)
+            let text = ShieldStatus.Text(state, calendar: cal, locale: Locale(identifier: "de_CH"))
             #expect(text.lead == lead)
             #expect(text.detail == detail)
             #expect(text.isAction == isAction)

@@ -91,7 +91,7 @@ struct SettingsView: View {
             }
             if let time = model.reminderTime {
                 Picker("Time", selection: Binding(get: { time }, set: { model.reminderTime = $0 })) {
-                    ForEach(TaskFormModel.startTimeChoices, id: \.self) { Text($0.description).tag($0) }
+                    ForEach(TaskFormModel.startTimeChoices, id: \.self) { Text($0.formatted()).tag($0) }
                 }
                 .pickerStyle(.menu)
                 .tint(DesignSystem.Colors.accent)

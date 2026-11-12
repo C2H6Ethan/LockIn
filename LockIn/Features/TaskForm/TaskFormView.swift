@@ -190,12 +190,12 @@ struct TaskFormView: View {
             }
             if let start = model.draft.startTime {
                 Picker("From", selection: Binding(get: { start }, set: { model.draft.startTime = $0 })) {
-                    ForEach(TaskFormModel.startTimeChoices, id: \.self) { Text($0.description).tag($0) }
+                    ForEach(TaskFormModel.startTimeChoices, id: \.self) { Text($0.formatted()).tag($0) }
                 }
                 .pickerStyle(.wheel)
                 .frame(height: 120)
             }
-            footnote(model.draft.startTime.map { "Your apps are blocked from \($0.description) until this is done." }
+            footnote(model.draft.startTime.map { "Your apps are blocked from \($0.formatted()) until this is done." }
                      ?? "Your apps are blocked all day until this is done. Turn on to start blocking later.")
         }
     }
