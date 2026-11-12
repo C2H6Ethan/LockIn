@@ -79,11 +79,16 @@ struct TaskFormView: View {
                         .disabled(!model.canSave)
                 }
             }
-            .confirmationDialog("Delete this task?", isPresented: $confirmsDelete, titleVisibility: .visible) {
+            // A centered alert, not a confirmationDialog: on iOS 26 that becomes a popover pointing at
+            // whatever it's attached to, here the top of the screen.
+            .alert("Delete “\(model.draft.title)”?", isPresented: $confirmsDelete) {
                 Button("Delete", role: .destructive) {
                     model.delete()
                     dismiss()
                 }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This can't be undone.")
             }
             // Only a new Task opens with the keyboard; editing opens on the whole form.
             .onAppear { if !model.isEditing { titleFocused = true } }
