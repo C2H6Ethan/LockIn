@@ -7,14 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BB0000000000000000000011 /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000010 /* LockInCore */; };
-		BB0000000000000000000013 /* LockInPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000012 /* LockInPlatform */; };
-		BB0000000000000000000015 /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000014 /* LockInCore */; };
-		BB0000000000000000000017 /* LockInPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000016 /* LockInPlatform */; };
-		BB0000000000000000000019 /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000018 /* LockInCore */; };
-		BB000000000000000000001B /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB000000000000000000001A /* LockInCore */; };
-		BB000000000000000000001D /* LockInPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = BB000000000000000000001C /* LockInPlatform */; };
-		BB000000000000000000001F /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB000000000000000000001E /* LockInCore */; };
 		AAA4C04B2F62B188000D9D5D /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAA4C04A2F62B188000D9D5D /* HealthKit.framework */; };
 		AAA4C05E2F6304CA000D9D5D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAA4C05D2F6304CA000D9D5D /* WidgetKit.framework */; };
 		AAA4C0602F6304CA000D9D5D /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAA4C05F2F6304CA000D9D5D /* SwiftUI.framework */; };
@@ -26,6 +18,14 @@
 		AAE22AAC2F5E08A000C261A9 /* ShieldConfiguration.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AAE22AA02F5E08A000C261A9 /* ShieldConfiguration.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AAE22AB62F5E08B400C261A9 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAE22AA12F5E08A000C261A9 /* ManagedSettings.framework */; };
 		AAE22ABE2F5E08B400C261A9 /* ShieldAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AAE22AB52F5E08B400C261A9 /* ShieldAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BB0000000000000000000011 /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000010 /* LockInCore */; };
+		BB0000000000000000000013 /* LockInPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000012 /* LockInPlatform */; };
+		BB0000000000000000000015 /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000014 /* LockInCore */; };
+		BB0000000000000000000017 /* LockInPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000016 /* LockInPlatform */; };
+		BB0000000000000000000019 /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB0000000000000000000018 /* LockInCore */; };
+		BB000000000000000000001B /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB000000000000000000001A /* LockInCore */; };
+		BB000000000000000000001D /* LockInPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = BB000000000000000000001C /* LockInPlatform */; };
+		BB000000000000000000001F /* LockInCore in Frameworks */ = {isa = PBXBuildFile; productRef = BB000000000000000000001E /* LockInCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -479,7 +479,7 @@
 			mainGroup = AAE22A702F5E086300C261A9;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				BB0000000000000000000001 /* XCLocalSwiftPackageReference \"Packages/LockIn\" */,
+				BB0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/LockIn" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AAE22A7A2F5E086300C261A9 /* Products */;

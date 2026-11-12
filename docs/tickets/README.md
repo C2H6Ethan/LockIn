@@ -33,7 +33,7 @@ The v3 rewrite of LockIn, one vertical slice per ticket. Work happens on the `re
 | 023 | [UX restructure](023-ux-restructure.md) (lands before 022's TestFlight step) | done |
 | 024 | [Copy review](024-copy-review.md) | done |
 | 025 | [Focus and input feedback](025-focus-and-input-feedback.md) | done |
-| 026 | [App Store listing](026-app-store-listing.md) (before the 2.0.0 App Store release) | todo |
+| 026 | App Store listing: moved to the private marketing repo (`../marketing`, ticket M001); the app repo stays code-only | moved |
 | 027 | [Remove the v2 import](027-remove-v2-import.md) (the release after 2.0.0) | todo |
 
 v2 reference: the old implementation stays readable on `main` until 022. Read it for copy and behavior details, never copy its structure.

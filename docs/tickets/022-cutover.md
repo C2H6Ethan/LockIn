@@ -12,7 +12,7 @@ Signed off: all device checks passed on the iPhone 13 Pro and approved by the us
 - Bump the version to 2.0.0 and build to 13. Upload to TestFlight and test with existing users.
 - Merge `rewrite` into `main`.
 - Retire the v2 plan: moved to `../.claude/archive/lockin-app-v2-plan.md`.
-- Follow-up: [027](027-remove-v2-import.md) removes the v2 import one release later. The App Store release moved to [026](026-app-store-listing.md).
+- Follow-up: [027](027-remove-v2-import.md) removes the v2 import one release later. The App Store listing and release moved to the private marketing repo (`../marketing`, ticket M001).
 
 ## Device checklist (all pending checks from 001–020, in the order to run them)
 
