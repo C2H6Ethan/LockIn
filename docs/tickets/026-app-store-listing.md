@@ -21,7 +21,8 @@ A professional store page for 2.0.0. **The main work is new screenshots**: desig
 
 ### Sizes App Store Connect requires
 - **iPhone 6.9"**: 1320 × 2868 portrait (other iPhone sizes are scaled from it).
-- **iPad 13"**: 2064 × 2752. Needed because the app targets iPad (`TARGETED_DEVICE_FAMILY = 1,2`). **Decide first:** make iPad screenshots, or drop iPad support (iPhone-only apps still run on iPad in compatibility mode)?
+- **iPad 13"**: 2064 × 2752. Needed because the app targets iPad (`TARGETED_DEVICE_FAMILY = 1,2`).
+  - **Decided:** iPad stays supported and gets its own screenshot set. **Don't change any UI code for iPad.** Capture the app as it already looks on the iPad simulator, and fit the layout around it (iPad frame, landscape-friendly caption placement if needed).
 
 ### How (find the best way; Figma is a fallback only)
 The Figma MCP has a monthly call limit that has probably been used up, so the pipeline must not rely on it. Recommended, to be confirmed while doing it:
@@ -46,6 +47,6 @@ The Figma MCP has a monthly call limit that has probably been used up, so the pi
 - The privacy answers ("Data Not Collected") still hold. Check that HealthKit and location use is described correctly.
 
 ## Done when
-- [ ] The iPhone set (and iPad set, or iPad support dropped) is rendered at the exact sizes and uploaded.
+- [ ] The iPhone set and the iPad set are rendered at the exact sizes and uploaded, with no UI code changed for iPad.
 - [ ] The description, title, subtitle, keywords, promotional text and What's New are updated in App Store Connect.
 - [ ] Looked at on a real App Store search result (TestFlight page or after release) and the first 3 read well.
