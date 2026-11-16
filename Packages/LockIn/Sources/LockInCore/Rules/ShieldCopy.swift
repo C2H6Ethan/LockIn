@@ -6,29 +6,24 @@ public enum ShieldCopy {
     public static let secondaryButton = "Earn a Bypass"
 
     public static let shameMessages = [
-        "Do the work now. Enjoy the reward later.",
-        "Every minute here is a minute stolen from something better.",
-        "The version of you who finished wins.",
-        "Close this. Go build something.",
-        "Your future self is watching.",
-        "The distraction ends. The work remains.",
-        "One less excuse. One more reason to finish.",
-        "Nothing on here matters as much as what you're avoiding.",
-        "Get it done. Then do whatever you want.",
-        "You already know what you should be doing.",
+        "Not yet.",
+        "Tasks first.",
+        "This will still be here later.",
+        "You know what's left.",
+        "Still blocked.",
+        "It's not going anywhere.",
+        "Probably nothing urgent.",
+        "Your tasks are waiting.",
+        "Later.",
+        "Back to it.",
     ]
 
     public static let headers = [
-        "earn it first",
-        "not yet. complete these",
-        "no excuses. finish these",
-        "you haven't earned this",
-        "blocked until you finish",
-        "do these. then come back",
-        "not done. not unlocked",
-        "close this. finish these",
-        "finish what you started",
-        "these come first",
+        "Still to do",
+        "Finish these first",
+        "Left today",
+        "Blocked until these are done",
+        "Do these, then come back",
     ]
 
     static let maxListed = 3

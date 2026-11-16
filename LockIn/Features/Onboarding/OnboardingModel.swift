@@ -62,7 +62,7 @@ final class OnboardingModel {
     var doneSubtitle: String {
         hasTasks
             ? "Your apps stay blocked until your required tasks are done."
-            : "Add a task whenever you're ready. Until then nothing is blocked."
+            : "Nothing is blocked until you add a task."
     }
 
     func finish() {

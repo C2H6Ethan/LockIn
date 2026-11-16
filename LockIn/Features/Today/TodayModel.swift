@@ -89,7 +89,7 @@ final class TodayModel {
                 store.write(visits, to: .visits)
                 setCompleted(id, true, on: day)
             } else {
-                messages[id] = fix == nil ? "Couldn't find your location. Try again." : "Not at \(place.name) yet today."
+                messages[id] = fix == nil ? "Couldn't find your location. Try again." : "You haven't been to \(place.name) today."
             }
         }
     }

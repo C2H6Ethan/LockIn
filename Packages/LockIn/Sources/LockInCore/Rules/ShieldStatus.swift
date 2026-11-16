@@ -85,7 +85,7 @@ public struct ShieldStatus: Equatable, Sendable {
             case .noRequiredTasks:
                 (lead, detail, isAction) = ("No required tasks today", nil, false)
             case .needsScreenTime:
-                (lead, detail, isAction) = ("Blocking can't start", "allow Screen Time access", true)
+                (lead, detail, isAction) = ("Blocking can't start", "needs Screen Time access", true)
             case .needsBlocklist:
                 (lead, detail, isAction) = ("Nothing to block", "choose your Blocklist", true)
             }

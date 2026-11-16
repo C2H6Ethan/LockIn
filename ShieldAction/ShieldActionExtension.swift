@@ -24,8 +24,8 @@ final class ShieldActionExtension: ShieldActionDelegate {
             let steps = store.map { $0.read(.bypasses).nextStepCost(on: DayKey(Date(), calendar: .current), calendar: .current) }
             UserNotificationPoster().post(
                 id: "earn-access",
-                title: "Earn a Bypass.",
-                body: steps.map { "Walk \($0) steps to pause blocking for 15 minutes." } ?? "Tap to open Lock In.",
+                title: "Earn a Bypass",
+                body: steps.map { "Walk \($0.formatted()) steps to pause blocking for 15 minutes." } ?? "Tap to open Lock In.",
                 deepLink: DeepLink.bypass.url
             )
             store?.log("Shield: Bypass requested", source: .shieldAction)

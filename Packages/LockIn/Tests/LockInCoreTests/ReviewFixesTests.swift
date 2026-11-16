@@ -32,7 +32,7 @@ struct BypassOverNoticeTests {
     let bypass = Bypass(id: UUID(), start: Date(timeIntervalSince1970: 0), end: Date(timeIntervalSince1970: 900))
 
     @Test func announcedOnlyWhenTheCurrentWindowEndedAndBlockingIsBack() {
-        #expect(BypassLog.endNotice(ended: bypass, shieldUp: true) == Reminder.Content(title: "Bypass over.", body: "Blocking is back on."))
+        #expect(BypassLog.endNotice(ended: bypass, shieldUp: true) == Reminder.Content(title: "Bypass over", body: "Blocking is back on."))
         #expect(BypassLog.endNotice(ended: bypass, shieldUp: false) == nil)  // Tasks were done during the Bypass
         #expect(BypassLog.endNotice(ended: nil, shieldUp: true) == nil)      // stale callback
     }

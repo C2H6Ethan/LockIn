@@ -18,7 +18,7 @@ struct TodayWidget: Widget {
                 .widgetURL(DeepLink.today.url)
         }
         .configurationDisplayName("Today")
-        .description("Required tasks done and your streak.")
+        .description("Today's required tasks and your streak.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

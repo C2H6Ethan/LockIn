@@ -53,7 +53,7 @@ struct BypassEnforcementTests {
         e.intervalDidStart(activityName: ScheduledActivity.bypassEnd(bypass.end).name, now: at(15, 14, 50))  // slightly early
 
         #expect(target.applications != nil)
-        #expect(poster.posts.map(\.title) == ["Bypass over."])
+        #expect(poster.posts.map(\.title) == ["Bypass over"])
         #expect(center.registered.keys.allSatisfy { !$0.hasPrefix("bypass-end-") })
     }
 

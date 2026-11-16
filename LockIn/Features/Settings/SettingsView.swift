@@ -59,7 +59,7 @@ struct SettingsView: View {
         let parts = [(blocklist.appCount, "app", "apps"), (blocklist.categoryCount, "category", "categories"), (websites, "website", "websites")]
             .filter { $0.0 > 0 }
             .map { "\($0.0) \($0.0 == 1 ? $0.1 : $0.2)" }
-        return parts.isEmpty ? "Empty. Choose what to block." : parts.joined(separator: ", ")
+        return parts.isEmpty ? "Empty" : parts.joined(separator: ", ")
     }
 
     private var blockingSection: some View {
@@ -75,8 +75,8 @@ struct SettingsView: View {
     private var authorizationText: String {
         switch authorization.authorizationStatus {
         case .approved: return "Allowed"
-        case .denied: return "Not allowed. Blocking can't work until you allow it."
-        default: return "Not set up yet. Tap to allow."
+        case .denied: return "Not allowed. Blocking can't start without it."
+        default: return "Not set up"
         }
     }
 

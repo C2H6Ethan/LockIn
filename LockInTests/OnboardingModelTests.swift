@@ -61,7 +61,7 @@ struct OnboardingModelTests {
     @Test func doneCopyReflectsWhetherATaskWasAdded() async {
         let store = LockInStore(storage: InMemoryStorage())
         let m = model(store: store)
-        #expect(m.doneSubtitle == "Add a task whenever you're ready. Until then nothing is blocked.")
+        #expect(m.doneSubtitle == "Nothing is blocked until you add a task.")
         store.write([LockInTask(title: "Read", schedule: .weekly(Set(Weekday.allCases)), requirement: .required, createdOn: DayKey("2026-11-10")!)], to: .tasks)
         #expect(m.doneSubtitle == "Your apps stay blocked until your required tasks are done.")
     }

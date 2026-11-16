@@ -101,7 +101,7 @@ struct PlacePickerView: View {
                 }
             }
             .frame(maxHeight: .infinity)
-            Text("Tap the map to move the pin. You need to be within \(Int(Place.radius)) m of the pin.")
+            Text("Tap the map to move the pin. You need to be within \(Int(Place.radius)) m of it.")
                 .font(.footnote)
                 .foregroundStyle(DesignSystem.Colors.secondaryText)
                 .padding(.horizontal, DesignSystem.Spacing.lg)

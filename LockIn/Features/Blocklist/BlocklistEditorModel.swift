@@ -17,7 +17,7 @@ final class BlocklistEditorModel {
     private let onSave: () -> Void
     private let saved: Blocklist
 
-    static let lockedText = "Lock Mode is on: you can add to the Blocklist, not remove from it."
+    static let lockedText = "In Lock Mode, you can add to the Blocklist but not remove from it."
 
     init(store: LockInStore, now: @escaping () -> Date = Date.init, onSave: @escaping () -> Void) {
         self.store = store

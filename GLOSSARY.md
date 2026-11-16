@@ -42,7 +42,7 @@ The system block screen covering a blocked app or website while the user still o
 _Avoid_: Lock, block screen, shame screen; "Shield" in user-facing copy
 
 **Blocking status**:
-The one line on Today that says whether blocking is on and why: "Blocking on · 3 required tasks left", "Blocking from 23:30", "Blocking off · Day kept", "Blocking resumes at 14:05", "Blocking can't start: allow Screen Time access". Code: `ShieldStatus`.
+The one line on Today that says whether blocking is on and why: "Blocking on · 3 required tasks left", "Blocking from 23:30", "Blocking off · Day kept", "Blocking resumes at 14:05", "Blocking can't start: needs Screen Time access". Code: `ShieldStatus`.
 _Avoid_: Shield status, lock state
 
 **Missed Day**:

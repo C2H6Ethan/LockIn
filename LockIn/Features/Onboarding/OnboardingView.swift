@@ -38,16 +38,16 @@ struct OnboardingView: View {
         case .welcome:
             page("Lock In.", "Block distracting apps until your tasks are done.")
         case .screenTime:
-            page("How blocking\nworks.",
+            page("Blocking uses\nScreen Time.",
                  model.screenTimeDenied
-                    ? "Lock In needs Screen Time access to block anything. Nothing leaves your device. Allow it to continue."
-                    : "Lock In uses Apple's Screen Time to block distracting apps until you finish what matters.\n\nNo accounts. No servers. Everything stays on your device.")
+                    ? "Lock In can't block anything without Screen Time access."
+                    : "Lock In needs Screen Time access to block apps. Your data stays on your device.")
         case .blocklist:
             page("Block your\ndistractions.", blocklistSubtitle)
         case .firstTask:
             page("Add your\nfirst task.", firstTaskSubtitle)
         case .notifications:
-            page("A nudge,\nif needed.", "One reminder in the evening, only on days you still have required tasks open. You can change the time in Settings.")
+            page("An evening\nreminder.", "Sent only when required tasks are still open. You can change the time in Settings.")
         case .done:
             page("You're\nlocked in.", model.doneSubtitle)
         }
@@ -57,16 +57,16 @@ struct OnboardingView: View {
         _ = dataVersion
         let blocklist = environment.store.read(.blocklist)
         return blocklist.isEmpty
-            ? "Pick the apps, categories and websites you reach for when you should be doing something else."
-            : "Blocklist saved. You can change it any time in Settings."
+            ? "Pick the apps, categories and websites that distract you."
+            : "Blocklist saved. You can change it in Settings."
     }
 
     private var firstTaskSubtitle: String {
         _ = dataVersion
         let tasks = environment.store.read(.tasks)
         return tasks.isEmpty
-            ? "Something you'll do every day. The apps on your Blocklist stay blocked until it's done."
-            : "Added \(tasks.map(\.title).joined(separator: ", ")). Add more now or later."
+            ? "Something you'll do each day. Your apps stay blocked until it's done."
+            : "Added \(tasks.map(\.title).joined(separator: ", "))."
     }
 
     @ViewBuilder private var actions: some View {
@@ -75,7 +75,7 @@ struct OnboardingView: View {
             case .welcome:
                 PrimaryButton("Get started") { advance() }
             case .screenTime:
-                PrimaryButton(model.screenTimeDenied ? "Try again" : "Allow Screen Time", isWorking: model.isWorking) { advance() }
+                PrimaryButton(model.screenTimeDenied ? "Try again" : "Continue", isWorking: model.isWorking) { advance() }
             case .blocklist:
                 let empty = { _ = dataVersion; return environment.store.read(.blocklist).isEmpty }()
                 PrimaryButton(empty ? "Choose what to block" : "Continue") {
@@ -93,7 +93,7 @@ struct OnboardingView: View {
                     if none { advance() } else { showsTaskForm = true }
                 }
             case .notifications:
-                PrimaryButton("Allow notifications", isWorking: model.isWorking) { advance() }
+                PrimaryButton("Continue", isWorking: model.isWorking) { advance() }
             case .done:
                 PrimaryButton("Start") { model.finish() }
             }

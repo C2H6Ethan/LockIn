@@ -32,7 +32,7 @@ struct LocationTaskAppTests {
         let m = model(at: Coordinate(latitude: 47.40, longitude: 8.54))
         await m.toggle(task.id)?.value
         #expect(!store.read(.completions).isCompleted(task.id, on: today))
-        #expect(m.message(for: task) == "Not at Gym yet today.")
+        #expect(m.message(for: task) == "You haven't been to Gym today.")
     }
 
     @Test func tappingAtThePlaceCompletesAndRecordsTheVisit() async {

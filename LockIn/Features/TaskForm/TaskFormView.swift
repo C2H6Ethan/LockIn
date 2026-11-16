@@ -114,7 +114,7 @@ struct TaskFormView: View {
                 Text("Required").foregroundStyle(DesignSystem.Colors.primaryText)
             }
             Text(model.draft.requirement == .required
-                 ? "The apps on your Blocklist stay blocked until this is done."
+                 ? "Your apps stay blocked until this is done."
                  : "Shows on Today, but never blocks anything.")
                 .font(.footnote)
                 .foregroundStyle(DesignSystem.Colors.secondaryText)
@@ -158,14 +158,14 @@ struct TaskFormView: View {
 
             switch model.draft.completesBy {
             case .tickOff:
-                footnote("You tick it off yourself on Today.")
+                footnote("Tick it off on Today.")
             case .steps:
                 Picker("Goal", selection: $model.draft.stepTarget) {
                     ForEach(model.stepTargetChoices, id: \.self) { Text("\($0.formatted()) steps").tag($0) }
                 }
                 .pickerStyle(.menu)
                 .tint(DesignSystem.Colors.accent)
-                footnote("Ticks itself off when you've walked this many steps today.")
+                footnote("Completes itself when you reach this many steps today.")
                 footnote("Steps not counting? In the Health app, tap your profile, then Apps → Lock In, and turn on Steps.")
             case .place:
                 Button { openPlacePicker() } label: {
@@ -196,7 +196,7 @@ struct TaskFormView: View {
                 .frame(height: 120)
             }
             footnote(model.draft.startTime.map { "Your apps are blocked from \($0.formatted()) until this is done." }
-                     ?? "Your apps are blocked all day until this is done. Turn on to start blocking later.")
+                     ?? "Your apps are blocked all day until this is done. Turn on to start later.")
         }
     }
 

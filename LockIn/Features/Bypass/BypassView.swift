@@ -48,17 +48,17 @@ struct BypassView: View {
                     .font(.body)
                     .foregroundStyle(DesignSystem.Colors.accent)
                     .padding(.top, DesignSystem.Spacing.lg)
-                Text("Walk \(goal.formatted()) steps to pause blocking for 15 minutes. Carry your iPhone: Apple Watch steps don't count here. Each Bypass today costs more steps.")
+                Text("Walk \(goal.formatted()) steps with your iPhone to pause blocking for 15 minutes. Each Bypass today costs more steps.")
                     .font(.footnote)
                     .foregroundStyle(DesignSystem.Colors.secondaryText)
                     .padding(.top, DesignSystem.Spacing.sm)
             }
         case .active(let until):
-            message("You gave in.", "Blocking resumes at \(until.formatted(date: .omitted, time: .shortened)).")
+            message("Blocking paused.", "It resumes at \(until.formatted(date: .omitted, time: .shortened)).")
         case .nothingOwed:
-            message("Nothing to bypass.", "Nothing is blocked right now.")
+            message("Nothing is blocked.", "You don't need a Bypass right now.")
         case .unavailable:
-            message("Can't count steps.", "This device has no step counter, so a Bypass can't be earned here.")
+            message("Can't count steps.", "This device has no step counter, so you can't earn a Bypass on it.")
         case .motionDenied:
             message("Can't count steps.", "To earn a Bypass, open Settings → Privacy & Security → Motion & Fitness and turn on Lock In.")
         }

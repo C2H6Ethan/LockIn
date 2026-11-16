@@ -122,7 +122,7 @@ struct ShieldStatusTests {
             (.bypassed(until: end, left: 1), "Blocking resumes at 14:05", "Bypass", false),
             (.off, "Blocking off", "Day kept", false),
             (.noRequiredTasks, "No required tasks today", nil, false),
-            (.needsScreenTime, "Blocking can't start", "allow Screen Time access", true),
+            (.needsScreenTime, "Blocking can't start", "needs Screen Time access", true),
             (.needsBlocklist, "Nothing to block", "choose your Blocklist", true),
         ]
         for (state, lead, detail, isAction) in expected {
