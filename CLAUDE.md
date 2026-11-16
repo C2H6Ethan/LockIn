@@ -46,3 +46,7 @@ If a decision changes the domain language, update `GLOSSARY.md`. If it's hard to
 - SF Pro. The `.serif` design variant is for shame messages only.
 - No cards and no borders: typography and whitespace only.
 - All constants live in `DesignSystem.swift`.
+
+## Git
+
+Commit and push to `origin main` at natural moments: a finished piece of a ticket with its tests passing, or a finished ticket. Small commits with a clear message. This is a public repo, so never commit secrets, signing material, personal data or anything from the private `../marketing` workspace. Don't commit files the founder left modified or untracked without checking (for example scheme or project settings changes).
